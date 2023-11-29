@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { ObjectId } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
-import add from 'date-fns/add';
 import { getUserViewModel, NewUsersDBType, UserInputType } from './user.types';
 import bcrypt from 'bcrypt';
+import add from 'date-fns/add';
 
 @Injectable()
 export class UsersService {
