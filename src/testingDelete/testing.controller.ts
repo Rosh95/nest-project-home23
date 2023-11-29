@@ -1,4 +1,4 @@
-import { Controller, Delete, Injectable } from '@nestjs/common';
+import { Controller, Delete, HttpCode, Injectable } from '@nestjs/common';
 import { TestingService } from './testing.service';
 
 // export const testRouter = Router({});
@@ -18,6 +18,7 @@ import { TestingService } from './testing.service';
 export class TestingController {
   constructor(public testingService: TestingService) {}
   @Delete('all-data')
+  @HttpCode(204)
   async deleteAll() {
     await this.testingService.deletingAll();
 

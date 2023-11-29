@@ -66,7 +66,50 @@ export class PostQueryRepository {
     );
     return foundPost ? this.postMapping(foundPost, userId) : null;
   }
+  async getAllPostOfBlog(
+    blogId: string,
+    queryData: queryDataType,
+    userId?: ObjectId | null,
+  ): Promise<PaginatorPostViewType> {
+    const posts = await this.postModel
+      .find({ blogId })
+      .sort({ [queryData.sortBy]: queryData.sortDirection })
+      .skip(queryData.skippedPages)
+      .limit(queryData.pageSize)
+      .lean();
+    console.log(posts);
+    const postViewArray: PostViewModel[] = await Promise.all(
+      posts.map(async (post) => this.postMapping(post, userId)),
+    );
+    const pagesCount = await this.countTotalPostsAndPagesOfBlog(
+      blogId,
+      queryData,
+    );
 
+    return {
+      pagesCount: pagesCount.postsPagesCount,
+      page: queryData.pageNumber,
+      pageSize: queryData.pageSize,
+      totalCount: pagesCount.postsTotalCount,
+      items: postViewArray,
+    };
+  }
+
+  private async countTotalPostsAndPagesOfBlog(
+    id: string,
+    queryData: queryDataType,
+  ) {
+    const postsTotalCount = await this.getAllPostCountOfBlog(id);
+    const postsPagesCount = Math.ceil(postsTotalCount / queryData.pageSize);
+
+    return {
+      postsTotalCount,
+      postsPagesCount,
+    };
+  }
+  async getAllPostCountOfBlog(blogId: string): Promise<number> {
+    return this.postModel.countDocuments({ blogId: blogId });
+  }
   private async postMapping(
     post: PostDBModel,
     userId?: ObjectId | null,

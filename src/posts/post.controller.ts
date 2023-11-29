@@ -147,6 +147,7 @@ export class PostController {
   }
 
   @Put(':id')
+  @HttpCode(204)
   async updatePost(
     @Query() { title, shortDescription, content },
     @Param() id: string,

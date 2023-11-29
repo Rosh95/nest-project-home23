@@ -72,7 +72,8 @@ export class BlogQueryRepository {
   //   queryData: queryDataType,
   //   userId?: ObjectId | null,
   // ): Promise<PaginatorPostViewType> {
-  //   const posts = await PostModel.find({ blogId })
+  //   const posts = await this.postModel
+  //     .find({ blogId })
   //     .sort({ [queryData.sortBy]: queryData.sortDirection })
   //     .skip(queryData.skippedPages)
   //     .limit(queryData.pageSize)
@@ -94,21 +95,6 @@ export class BlogQueryRepository {
   //     items: postViewArray,
   //   };
   // }
-  private async countTotalPostsAndPagesOfBlog(
-    id: string,
-    queryData: queryDataType,
-  ) {
-    const postsTotalCount = await this.getAllPostCountOfBlog(id);
-    const postsPagesCount = Math.ceil(postsTotalCount / queryData.pageSize);
-
-    return {
-      postsTotalCount,
-      postsPagesCount,
-    };
-  }
-  async getAllPostCountOfBlog(blogId: string): Promise<number> {
-    return this.postModel.countDocuments({ blogId: blogId });
-  }
 
   async getAllBlogsCount(filter: any): Promise<number> {
     return this.blogModel.countDocuments(filter);

@@ -3,11 +3,15 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Injectable,
+  InternalServerErrorException,
+  NotFoundException,
   Param,
   Post,
   Put,
   Query,
+  Req,
 } from '@nestjs/common';
 import { BlogService } from './blogs.service';
 import { BlogQueryRepository } from './blogQuery.repository';
@@ -19,6 +23,15 @@ import {
   BlogViewType,
   PaginatorBlogViewType,
 } from './blogs.types';
+import { Request } from 'express';
+import { JwtService } from '../jwt/jwt.service';
+import {
+  PaginatorPostViewType,
+  postInputDataModelForExistingBlog,
+  PostViewModel,
+} from '../posts/post.types';
+import { ObjectId } from 'mongodb';
+import { ResultObject } from '../helpers/heplersType';
 
 @Injectable()
 @Controller('blogs')
@@ -28,6 +41,7 @@ export class BlogController {
     public blogQueryRepository: BlogQueryRepository,
     public postService: PostService,
     public postQueryRepository: PostQueryRepository,
+    public jwtService: JwtService,
     public helpers: Helpers,
   ) {}
   @Get()
@@ -54,6 +68,7 @@ export class BlogController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   // @HttpStatus(HttpStatusCode.NO_CONTENT)
   async deleteBlog(@Param('id') id: string) {
     const isDeleted: boolean = await this.blogService.deleteBlog(id);
@@ -82,6 +97,7 @@ export class BlogController {
   }
 
   @Put(':id')
+  @HttpCode(204)
   async updateBlog(
     @Param('id') id: string,
     @Body() { name, description, websiteUrl },
@@ -111,58 +127,61 @@ export class BlogController {
     }
   }
 
-  // async getPostsFromBlogById(req: Request, res: Response) {
-  //   const isExistBlog = await this.blogQueryRepository.findBlogById(
-  //     req.params.id,
-  //   );
-  //   if (!isExistBlog) {
-  //     res.sendStatus(404);
-  //     return;
-  //   }
-  //   let userId = null;
-  //   if (req.headers.authorization) {
-  //     const token = req.headers.authorization.split(' ')[1];
-  //     userId = await jwtService.getUserIdByAccessToken(token.toString());
-  //   }
-  //   try {
-  //     const queryData: queryDataType = await getDataFromQuery(req.query);
-  //     const foundPosts: PaginatorPostViewType =
-  //       await this.blogQueryRepository.getAllPostOfBlog(
-  //         req.params.id,
-  //         queryData,
-  //         userId,
-  //       );
-  //     return res.send(foundPosts);
-  //   } catch (e) {
-  //     return res.status(500).json(e);
-  //   }
-  // }
-  //
-  // async createPostForBlogById(req: Request, res: Response) {
-  //   const isExistBlog = await this.blogQueryRepository.findBlogById(
-  //     req.params.id,
-  //   );
-  //   if (!isExistBlog) {
-  //     res.sendStatus(404);
-  //     return;
-  //   }
-  //   try {
-  //     const postInputData: postInputDataModelForExistingBlog = {
-  //       title: req.body.title,
-  //       shortDescription: req.body.shortDescription,
-  //       content: req.body.content,
-  //     };
-  //     const newPost: ResultObject<string> =
-  //       await this.postService.createPostForExistingBlog(
-  //         req.params.id,
-  //         postInputData,
-  //       );
-  //     const gotNewPost: PostViewModel | null = newPost.data
-  //       ? await this.postQueryRepository.findPostById(newPost.data)
-  //       : null;
-  //     return res.status(201).send(gotNewPost);
-  //   } catch (e) {
-  //     return res.status(500).json(e);
-  //   }
-  // }
+  @Get(':blogId/posts')
+  async getPostsFromBlogById(
+    @Query() query: any,
+    @Req() req: Request,
+    @Param('blogId') blogId: string,
+  ) {
+    const isExistBlog = await this.blogQueryRepository.findBlogById(blogId);
+    if (!isExistBlog) {
+      throw new NotFoundException();
+    }
+    let userId: ObjectId | null = null;
+    if (req.headers.authorization) {
+      const token = req.headers.authorization.split(' ')[1];
+      userId = await this.jwtService.getUserIdByAccessToken(token.toString());
+    }
+    try {
+      const queryData: queryDataType =
+        await this.helpers.getDataFromQuery(query);
+      const foundPosts: PaginatorPostViewType =
+        await this.postQueryRepository.getAllPostOfBlog(
+          blogId,
+          queryData,
+          userId,
+        );
+      return foundPosts;
+    } catch (e) {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  @Post(':blogId/posts')
+  @HttpCode(201)
+  async createPostForBlogById(
+    @Query() query: any,
+    @Req() req: Request,
+    @Param('blogId') blogId: string,
+  ) {
+    const isExistBlog = await this.blogQueryRepository.findBlogById(blogId);
+    if (!isExistBlog) {
+      throw new NotFoundException();
+    }
+    try {
+      const postInputData: postInputDataModelForExistingBlog = {
+        title: req.body.title,
+        shortDescription: req.body.shortDescription,
+        content: req.body.content,
+      };
+      const newPost: ResultObject<string> =
+        await this.postService.createPostForExistingBlog(blogId, postInputData);
+      const gotNewPost: PostViewModel | null = newPost.data
+        ? await this.postQueryRepository.findPostById(newPost.data)
+        : null;
+      return gotNewPost;
+    } catch (e) {
+      throw new InternalServerErrorException();
+    }
+  }
 }
