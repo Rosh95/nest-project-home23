@@ -44,6 +44,9 @@ import {
 import { Comment, CommentsSchema } from './comments/comment.schema';
 import { PostSchema } from './posts/post.schema';
 import { User, UsersSchema } from './users/user.schema';
+import { TestingController } from './testingDelete/testing.controller';
+import { TestingService } from './testingDelete/testing.service';
+import { TestingRepository } from './testingDelete/testing.repository';
 
 @Module({
   imports: [
@@ -69,6 +72,7 @@ import { User, UsersSchema } from './users/user.schema';
     BlogController,
     CommentsController,
     DeviceController,
+    TestingController,
   ],
   providers: [
     AppService,
@@ -92,6 +96,8 @@ import { User, UsersSchema } from './users/user.schema';
     PostRepository,
     JwtService,
     Helpers,
+    TestingService,
+    TestingRepository,
   ],
 })
 export class AppModule {}
