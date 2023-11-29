@@ -3,20 +3,19 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  Injectable,
+  NotFoundException,
   Param,
   Post,
-  Injectable,
   Req,
-  HttpCode,
   ServiceUnavailableException,
-  NotFoundException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { Request } from 'express';
 import { Helpers, queryDataType } from '../helpers/helpers';
 import {
   getUserViewModel,
-  NewUsersDBType,
   PaginatorUserViewType,
   UserInputType,
 } from './user.types';
@@ -47,9 +46,13 @@ export class UsersController {
 
   @Get(':userId')
   async getUserById(@Param('userId') userId: string) {
+    const isExistUser = await this.usersQueryRepository.findUserById(userId);
+    if (!isExistUser) {
+      return false;
+    }
     try {
-      const user: NewUsersDBType | null =
-        await this.userService.findUserById(userId);
+      const user: getUserViewModel | null =
+        await this.usersQueryRepository.findUserById(userId);
       return user;
     } catch (e) {
       console.log(e);

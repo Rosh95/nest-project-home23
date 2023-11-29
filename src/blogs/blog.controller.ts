@@ -57,21 +57,29 @@ export class BlogController {
       return new Error('something wrong');
     }
   }
-  @Get(':id')
-  async getBlogById(@Param('id') id: string) {
+  @Get(':blogId')
+  async getBlogById(@Param('blogId') blogId: string) {
+    const isExistBlog = await this.blogQueryRepository.findBlogById(blogId);
+    if (!isExistBlog) {
+      throw new NotFoundException();
+    }
     const foundBlog: BlogViewType | null =
-      await this.blogQueryRepository.findBlogById(id);
+      await this.blogQueryRepository.findBlogById(blogId);
     if (foundBlog) {
       return foundBlog;
     }
     return new Error('something wrong status 404');
   }
 
-  @Delete(':id')
+  @Delete(':blogId')
   @HttpCode(204)
   // @HttpStatus(HttpStatusCode.NO_CONTENT)
-  async deleteBlog(@Param('id') id: string) {
-    const isDeleted: boolean = await this.blogService.deleteBlog(id);
+  async deleteBlog(@Param('blogId') blogId: string) {
+    const isExistBlog = await this.blogQueryRepository.findBlogById(blogId);
+    if (!isExistBlog) {
+      throw new NotFoundException();
+    }
+    const isDeleted: boolean = await this.blogService.deleteBlog(blogId);
     if (isDeleted) {
       return true;
     } else false;

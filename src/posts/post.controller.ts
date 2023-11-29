@@ -73,9 +73,9 @@ export class PostController {
     }
   }
 
-  @Get(':id')
+  @Get(':postId')
   async getPostById(
-    @Param('id') id: string,
+    @Param('postId') postId: string,
     @Req() req: Request,
   ): Promise<PostViewModel | boolean | null> {
     let userId: ObjectId | null = null;
@@ -83,9 +83,13 @@ export class PostController {
       const token = req.headers.authorization.split(' ')[1];
       userId = await jwtService.getUserIdByAccessToken(token.toString());
     }
+    const isExistPost = await this.postQueryRepository.findPostById(postId);
+    if (!isExistPost) {
+      return false;
+    }
     try {
       const foundPost: PostViewModel | null =
-        await this.postQueryRepository.findPostById(id, userId);
+        await this.postQueryRepository.findPostById(postId, userId);
       if (foundPost) {
         return foundPost;
       }
@@ -96,10 +100,14 @@ export class PostController {
     }
   }
 
-  @Delete('id')
+  @Delete('posId')
   @HttpCode(204)
-  async deletePostById(@Param('id') id: string): Promise<any> {
-    const isDeleted: boolean = await this.postService.deletePost(id);
+  async deletePostById(@Param('postId') postId: string): Promise<any> {
+    const isExistPost = await this.postQueryRepository.findPostById(postId);
+    if (!isExistPost) {
+      return false;
+    }
+    const isDeleted: boolean = await this.postService.deletePost(postId);
     if (!isDeleted) throw new NotFoundException();
 
     return;
@@ -146,12 +154,16 @@ export class PostController {
     }
   }
 
-  @Put(':id')
+  @Put(':postId')
   @HttpCode(204)
   async updatePost(
     @Query() { title, shortDescription, content },
-    @Param() id: string,
+    @Param('postId') postId: string,
   ) {
+    const isExistPost = await this.postQueryRepository.findPostById(postId);
+    if (!isExistPost) {
+      return false;
+    }
     try {
       const updatedPostData: postInputUpdatedDataModel = {
         content: content,
@@ -159,7 +171,7 @@ export class PostController {
         shortDescription: shortDescription,
       };
       const isPostUpdated: boolean = await this.postService.updatePost(
-        id,
+        postId,
         updatedPostData,
       );
       if (isPostUpdated) {

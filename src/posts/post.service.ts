@@ -65,10 +65,10 @@ export class PostService {
   }
 
   async updatePost(
-    id: string,
+    postId: string,
     updatedPostData: postInputUpdatedDataModel,
   ): Promise<boolean> {
-    return await this.postRepository.updatePost(id, updatedPostData);
+    return await this.postRepository.updatePost(postId, updatedPostData);
   }
 
   async updatePostLikeStatusById(

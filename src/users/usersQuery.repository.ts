@@ -8,6 +8,7 @@ import {
 } from './user.types';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './user.schema';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class UsersQueryRepository {
@@ -62,6 +63,13 @@ export class UsersQueryRepository {
       usersTotalCount,
       usersPagesCount,
     };
+  }
+
+  async findUserById(userId: string): Promise<getUserViewModel | null> {
+    const foundUser: NewUsersDBType | null = await this.userModel.findOne({
+      _id: new ObjectId(userId),
+    });
+    return foundUser ? this.getUsersMapping(foundUser) : null;
   }
 
   private getUsersMapping(user: NewUsersDBType): getUserViewModel {
