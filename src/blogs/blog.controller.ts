@@ -128,24 +128,22 @@ export class BlogController {
     const isExistBlog = await this.blogQueryRepository.findBlogById(
       id.toString(),
     );
+    console.log(isExistBlog);
     if (!isExistBlog) {
-      return false;
+      throw new NotFoundException();
     }
-    try {
-      const BlogUpdateData: BlogInputModel = {
-        name: name,
-        description: description,
-        websiteUrl: websiteUrl,
-      };
-      const isBlogUpdate: boolean = await this.blogService.updateBlog(
-        id.toString(),
-        BlogUpdateData,
-      );
-      return isBlogUpdate;
-    } catch (e) {
-      console.log(e);
-      return false;
-    }
+    console.log(isExistBlog);
+
+    const BlogUpdateData: BlogInputModel = {
+      name: name,
+      description: description,
+      websiteUrl: websiteUrl,
+    };
+    const isBlogUpdate: boolean = await this.blogService.updateBlog(
+      id.toString(),
+      BlogUpdateData,
+    );
+    return isBlogUpdate;
   }
 
   @Get(':blogId/posts')

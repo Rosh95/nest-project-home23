@@ -89,7 +89,7 @@ export class PostController {
       postId.toString(),
     );
     if (!isExistPost) {
-      return false;
+      throw new NotFoundException();
     }
     try {
       const foundPost: PostViewModel | null =
@@ -104,7 +104,7 @@ export class PostController {
     }
   }
 
-  @Delete('posId')
+  @Delete(':postId')
   @HttpCode(204)
   async deletePostById(
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
@@ -113,7 +113,7 @@ export class PostController {
       postId.toString(),
     );
     if (!isExistPost) {
-      return false;
+      throw new NotFoundException();
     }
     const isDeleted: boolean = await this.postService.deletePost(
       postId.toString(),
@@ -173,7 +173,7 @@ export class PostController {
       postId.toString(),
     );
     if (!isExistPost) {
-      return false;
+      throw new NotFoundException();
     }
     try {
       const updatedPostData: postInputUpdatedDataModel = {
@@ -257,7 +257,7 @@ export class PostController {
     }
   }
 
-  @Put('postId')
+  @Put(':postId/like-status')
   @HttpCode(204)
   async updatePostLikeStatus(
     @Req() req: Request,
