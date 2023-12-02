@@ -7,16 +7,16 @@ import { Blog, BlogDocument } from './blog.schema';
 
 @Injectable()
 export class BlogRepository {
-  constructor(@InjectModel(Blog.name) public blogModel: Model<BlogDocument>) {}
+  constructor(@InjectModel(Blog.name) public blogModel: Model<Blog>) {}
 
   async deleteBlog(id: string): Promise<boolean> {
     const result = await this.blogModel.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
   }
   async createBlog(newBlog: BlogDbType): Promise<BlogViewType> {
-    const result = await this.blogModel.create(newBlog);
+    const result: BlogDocument = await this.blogModel.create(newBlog);
     return {
-      id: result._id.toString(),
+      id: result.id,
       name: newBlog.name,
       description: newBlog.description,
       websiteUrl: newBlog.websiteUrl,

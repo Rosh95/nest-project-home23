@@ -20,6 +20,8 @@ import {
   UserInputType,
 } from './user.types';
 import { UsersQueryRepository } from './usersQuery.repository';
+import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
+import { Types } from 'mongoose';
 
 @Injectable()
 @Controller('users')
@@ -45,14 +47,18 @@ export class UsersController {
   }
 
   @Get(':userId')
-  async getUserById(@Param('userId') userId: string) {
-    const isExistUser = await this.usersQueryRepository.findUserById(userId);
+  async getUserById(
+    @Param('userId', new ParseObjectIdPipe()) userId: Types.ObjectId,
+  ) {
+    const isExistUser = await this.usersQueryRepository.findUserById(
+      userId.toString(),
+    );
     if (!isExistUser) {
       return false;
     }
     try {
       const user: getUserViewModel | null =
-        await this.usersQueryRepository.findUserById(userId);
+        await this.usersQueryRepository.findUserById(userId.toString());
       return user;
     } catch (e) {
       console.log(e);
@@ -62,9 +68,13 @@ export class UsersController {
 
   @Delete(':userId')
   @HttpCode(204)
-  async deleteUserById(@Param('userId') userId: string) {
+  async deleteUserById(
+    @Param('userId', new ParseObjectIdPipe()) userId: Types.ObjectId,
+  ) {
     try {
-      const isDeleted: boolean = await this.userService.deleteUser(userId);
+      const isDeleted: boolean = await this.userService.deleteUser(
+        userId.toString(),
+      );
       if (isDeleted) {
         return true;
       } else throw new NotFoundException();

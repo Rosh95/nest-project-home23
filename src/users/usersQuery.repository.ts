@@ -7,12 +7,12 @@ import {
   PaginatorUserViewType,
 } from './user.types';
 import { InjectModel } from '@nestjs/mongoose';
-import { User, UserDocument } from './user.schema';
+import { User } from './user.schema';
 import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class UsersQueryRepository {
-  constructor(@InjectModel(User.name) public userModel: Model<UserDocument>) {}
+  constructor(@InjectModel(User.name) public userModel: Model<User>) {}
   async getAllUsers(queryData: queryDataType): Promise<PaginatorUserViewType> {
     const filter: FilterQuery<NewUsersDBType> = {
       $or: [

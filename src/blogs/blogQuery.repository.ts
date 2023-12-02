@@ -1,7 +1,7 @@
 import { Injectable, Post } from '@nestjs/common';
 import { ObjectId } from 'mongodb';
-import { BlogDbType, BlogViewType, PaginatorBlogViewType } from './blogs.types';
-import { queryDataType } from '../helpers/helpers';
+import { BlogDbType, BlogViewType } from './blogs.types';
+import { newPaginatorViewType, queryDataType } from '../helpers/helpers';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Blog, BlogDocument } from './blog.schema';
@@ -13,7 +13,9 @@ export class BlogQueryRepository {
     @InjectModel(Blog.name) public blogModel: Model<BlogDocument>,
     @InjectModel(Post.name) public postModel: Model<PostDocument>,
   ) {}
-  async getAllBlogs(queryData: queryDataType): Promise<PaginatorBlogViewType> {
+  async getAllBlogs(
+    queryData: queryDataType,
+  ): Promise<newPaginatorViewType<BlogViewType>> {
     const filter = {
       name: { $regex: queryData.searchNameTerm, $options: 'i' },
     };

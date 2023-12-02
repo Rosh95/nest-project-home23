@@ -35,6 +35,8 @@ import {
 } from '../comments/comments.types';
 import { CommentsService } from '../comments/comments.service';
 import { CommentsQueryRepository } from '../comments/commentsQuery.repository';
+import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
+import { Types } from 'mongoose';
 
 @Injectable()
 @Controller('posts')
@@ -75,7 +77,7 @@ export class PostController {
 
   @Get(':postId')
   async getPostById(
-    @Param('postId') postId: string,
+    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
     @Req() req: Request,
   ): Promise<PostViewModel | boolean | null> {
     let userId: ObjectId | null = null;
@@ -83,13 +85,15 @@ export class PostController {
       const token = req.headers.authorization.split(' ')[1];
       userId = await jwtService.getUserIdByAccessToken(token.toString());
     }
-    const isExistPost = await this.postQueryRepository.findPostById(postId);
+    const isExistPost = await this.postQueryRepository.findPostById(
+      postId.toString(),
+    );
     if (!isExistPost) {
       return false;
     }
     try {
       const foundPost: PostViewModel | null =
-        await this.postQueryRepository.findPostById(postId, userId);
+        await this.postQueryRepository.findPostById(postId.toString(), userId);
       if (foundPost) {
         return foundPost;
       }
@@ -102,14 +106,19 @@ export class PostController {
 
   @Delete('posId')
   @HttpCode(204)
-  async deletePostById(@Param('postId') postId: string): Promise<any> {
-    const isExistPost = await this.postQueryRepository.findPostById(postId);
+  async deletePostById(
+    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
+  ): Promise<any> {
+    const isExistPost = await this.postQueryRepository.findPostById(
+      postId.toString(),
+    );
     if (!isExistPost) {
       return false;
     }
-    const isDeleted: boolean = await this.postService.deletePost(postId);
+    const isDeleted: boolean = await this.postService.deletePost(
+      postId.toString(),
+    );
     if (!isDeleted) throw new NotFoundException();
-
     return;
   }
 
@@ -158,9 +167,11 @@ export class PostController {
   @HttpCode(204)
   async updatePost(
     @Query() { title, shortDescription, content },
-    @Param('postId') postId: string,
+    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
   ) {
-    const isExistPost = await this.postQueryRepository.findPostById(postId);
+    const isExistPost = await this.postQueryRepository.findPostById(
+      postId.toString(),
+    );
     if (!isExistPost) {
       return false;
     }
@@ -171,23 +182,22 @@ export class PostController {
         shortDescription: shortDescription,
       };
       const isPostUpdated: boolean = await this.postService.updatePost(
-        postId,
+        postId.toString(),
         updatedPostData,
       );
-      if (isPostUpdated) {
-        return true;
-      } else {
-        return false;
-      }
+      return isPostUpdated;
     } catch (e) {
       return false;
     }
   }
 
   @Post(':id')
-  async createCommentForPostById(@Param() id: string, @Req() req: Request) {
+  async createCommentForPostById(
+    @Param('id', new ParseObjectIdPipe()) id: Types.ObjectId,
+    @Req() req: Request,
+  ) {
     const currentPost: PostViewModel | null =
-      await this.postQueryRepository.findPostById(id);
+      await this.postQueryRepository.findPostById(id.toString());
     if (!currentPost) {
       return false;
     }
@@ -217,7 +227,7 @@ export class PostController {
   @Get(':postId')
   async getCommentForPostById(
     @Req() req: Request,
-    @Param('postId') postId: string,
+    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
   ): Promise<e.Response | PaginatorCommentViewType> {
     let userId: ObjectId | null = null;
     if (req.headers.authorization) {
@@ -225,7 +235,9 @@ export class PostController {
       userId = await jwtService.getUserIdByAccessToken(token.toString());
     }
 
-    const currentPost = await this.postQueryRepository.findPostById(postId);
+    const currentPost = await this.postQueryRepository.findPostById(
+      postId.toString(),
+    );
     if (!currentPost) {
       throw new NotFoundException();
     }
@@ -235,7 +247,7 @@ export class PostController {
       );
       const comments: PaginatorCommentViewType =
         await this.commentQueryRepository.getAllCommentsOfPost(
-          postId,
+          postId.toString(),
           queryData,
           userId,
         );
@@ -249,12 +261,12 @@ export class PostController {
   @HttpCode(204)
   async updatePostLikeStatus(
     @Req() req: Request,
-    @Param('postId') postId: string,
+    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
   ) {
     const currentUser = req.user;
 
     try {
-      const postInfo = await this.postRepository.getPostById(postId);
+      const postInfo = await this.postRepository.getPostById(postId.toString());
       if (!postInfo) {
         throw new NotFoundException();
       }

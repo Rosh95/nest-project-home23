@@ -17,12 +17,12 @@ import { BlogService } from './blogs.service';
 import { BlogQueryRepository } from './blogQuery.repository';
 import { PostService } from '../posts/post.service';
 import { PostQueryRepository } from '../posts/postQuery.repository';
-import { Helpers, queryDataType } from '../helpers/helpers';
 import {
-  BlogInputModel,
-  BlogViewType,
-  PaginatorBlogViewType,
-} from './blogs.types';
+  Helpers,
+  newPaginatorViewType,
+  queryDataType,
+} from '../helpers/helpers';
+import { BlogInputModel, BlogViewType } from './blogs.types';
 import { Request } from 'express';
 import { JwtService } from '../jwt/jwt.service';
 import {
@@ -30,8 +30,9 @@ import {
   postInputDataModelForExistingBlog,
   PostViewModel,
 } from '../posts/post.types';
-import { ObjectId } from 'mongodb';
 import { ResultObject } from '../helpers/heplersType';
+import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
+import { Types } from 'mongoose';
 
 @Injectable()
 @Controller('blogs')
@@ -49,7 +50,11 @@ export class BlogController {
     try {
       const queryData: queryDataType =
         await this.helpers.getDataFromQuery(query);
-      const allBlogs: PaginatorBlogViewType =
+
+      // const allBlogs: PaginatorBlogViewType =
+      //   await this.blogQueryRepository.getAllBlogs(queryData);
+
+      const allBlogs: newPaginatorViewType<BlogViewType> =
         await this.blogQueryRepository.getAllBlogs(queryData);
       return allBlogs;
     } catch (e) {
@@ -58,13 +63,17 @@ export class BlogController {
     }
   }
   @Get(':blogId')
-  async getBlogById(@Param('blogId') blogId: string) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(blogId);
+  async getBlogById(
+    @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
+  ) {
+    const isExistBlog = await this.blogQueryRepository.findBlogById(
+      blogId.toString(),
+    );
     if (!isExistBlog) {
       throw new NotFoundException();
     }
     const foundBlog: BlogViewType | null =
-      await this.blogQueryRepository.findBlogById(blogId);
+      await this.blogQueryRepository.findBlogById(blogId.toString());
     if (foundBlog) {
       return foundBlog;
     }
@@ -74,12 +83,18 @@ export class BlogController {
   @Delete(':blogId')
   @HttpCode(204)
   // @HttpStatus(HttpStatusCode.NO_CONTENT)
-  async deleteBlog(@Param('blogId') blogId: string) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(blogId);
+  async deleteBlog(
+    @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
+  ) {
+    const isExistBlog = await this.blogQueryRepository.findBlogById(
+      blogId.toString(),
+    );
     if (!isExistBlog) {
       throw new NotFoundException();
     }
-    const isDeleted: boolean = await this.blogService.deleteBlog(blogId);
+    const isDeleted: boolean = await this.blogService.deleteBlog(
+      blogId.toString(),
+    );
     if (isDeleted) {
       return true;
     } else false;
@@ -107,10 +122,12 @@ export class BlogController {
   @Put(':id')
   @HttpCode(204)
   async updateBlog(
-    @Param('id') id: string,
+    @Param('id', new ParseObjectIdPipe()) id: Types.ObjectId,
     @Body() { name, description, websiteUrl },
   ) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(id);
+    const isExistBlog = await this.blogQueryRepository.findBlogById(
+      id.toString(),
+    );
     if (!isExistBlog) {
       return false;
     }
@@ -121,14 +138,10 @@ export class BlogController {
         websiteUrl: websiteUrl,
       };
       const isBlogUpdate: boolean = await this.blogService.updateBlog(
-        id,
+        id.toString(),
         BlogUpdateData,
       );
-      if (isBlogUpdate) {
-        return true;
-      } else {
-        return false;
-      }
+      return isBlogUpdate;
     } catch (e) {
       console.log(e);
       return false;
@@ -139,13 +152,15 @@ export class BlogController {
   async getPostsFromBlogById(
     @Query() query: any,
     @Req() req: Request,
-    @Param('blogId') blogId: string,
+    @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
   ) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(blogId);
+    const isExistBlog = await this.blogQueryRepository.findBlogById(
+      blogId.toString(),
+    );
     if (!isExistBlog) {
       throw new NotFoundException();
     }
-    let userId: ObjectId | null = null;
+    let userId: Types.ObjectId | null = null;
     if (req.headers.authorization) {
       const token = req.headers.authorization.split(' ')[1];
       userId = await this.jwtService.getUserIdByAccessToken(token.toString());
@@ -155,7 +170,7 @@ export class BlogController {
         await this.helpers.getDataFromQuery(query);
       const foundPosts: PaginatorPostViewType =
         await this.postQueryRepository.getAllPostOfBlog(
-          blogId,
+          blogId.toString(),
           queryData,
           userId,
         );
@@ -170,9 +185,11 @@ export class BlogController {
   async createPostForBlogById(
     @Query() query: any,
     @Req() req: Request,
-    @Param('blogId') blogId: string,
+    @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
   ) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(blogId);
+    const isExistBlog = await this.blogQueryRepository.findBlogById(
+      blogId.toString(),
+    );
     if (!isExistBlog) {
       throw new NotFoundException();
     }
@@ -183,7 +200,10 @@ export class BlogController {
         content: req.body.content,
       };
       const newPost: ResultObject<string> =
-        await this.postService.createPostForExistingBlog(blogId, postInputData);
+        await this.postService.createPostForExistingBlog(
+          blogId.toString(),
+          postInputData,
+        );
       const gotNewPost: PostViewModel | null = newPost.data
         ? await this.postQueryRepository.findPostById(newPost.data)
         : null;

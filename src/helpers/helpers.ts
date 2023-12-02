@@ -37,6 +37,21 @@ export class Helpers {
     return (+pageNumber - 1) * +pageSize;
   }
 }
+export class newPaginatorViewType<T> {
+  public pagesCount: number;
+  constructor(
+    public page: number,
+    public pageSize: number,
+    public totalCount: number,
+    public items: T[],
+  ) {
+    this.pagesCount = totalCount / pageSize;
+  }
+}
+//const obj: newPaginatorViewType<Blog> = {}
+// const newBlog = new Blog();
+// new newPaginatorViewType(2, 5, 3, [newBlog]);
+
 // export const getDataFromQuery = async (query: any): Promise<queryDataType> => {
 //   const pageNumber: number = query.pageNumber ? +query.pageNumber : 1; // NaN
 //   const pageSize: number = query.pageSize ? +query.pageSize : 10; // NaN
