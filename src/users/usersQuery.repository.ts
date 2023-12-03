@@ -30,10 +30,11 @@ export class UsersQueryRepository {
         },
       ],
     };
+    const sortByConst = 'accountData.' + queryData.sortBy;
 
     const users = await this.userModel
       .find(filter)
-      .sort({ 'accountData.createdAt': queryData.sortDirection })
+      .sort({ [sortByConst]: queryData.sortDirection })
       .skip(queryData.skippedPages)
       .limit(queryData.pageSize)
       .lean();
