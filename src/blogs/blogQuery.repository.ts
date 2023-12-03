@@ -19,7 +19,8 @@ export class BlogQueryRepository {
     const filter = {
       name: { $regex: queryData.searchNameTerm, $options: 'i' },
     };
-
+    console.log('blogs');
+    console.log(queryData);
     const blogs = await this.blogModel
       .find(filter)
       .sort({ [queryData.sortBy]: queryData.sortDirection })

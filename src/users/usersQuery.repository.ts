@@ -37,7 +37,8 @@ export class UsersQueryRepository {
       .skip(queryData.skippedPages)
       .limit(queryData.pageSize)
       .lean();
-
+    console.log('users');
+    console.log(queryData);
     const usersViewArray: getUserViewModel[] = users.map((user) =>
       this.getUsersMapping(user),
     );
