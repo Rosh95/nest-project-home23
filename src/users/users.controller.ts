@@ -12,12 +12,12 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { Helpers, queryDataType } from '../helpers/helpers';
 import {
-  getUserViewModel,
-  PaginatorUserViewType,
-  UserInputType,
-} from './user.types';
+  Helpers,
+  newPaginatorViewType,
+  queryDataType,
+} from '../helpers/helpers';
+import { getUserViewModel, UserInputType } from './user.types';
 import { UsersQueryRepository } from './usersQuery.repository';
 import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
 import { Types } from 'mongoose';
@@ -33,10 +33,9 @@ export class UsersController {
   @Get()
   async getUsers(@Query() query: any) {
     try {
-      const queryData: queryDataType =
-        await this.helpers.getDataFromQuery(query);
+      const queryData: queryDataType = this.helpers.getDataFromQuery(query);
       console.log(queryData);
-      const allUsers: PaginatorUserViewType =
+      const allUsers: newPaginatorViewType<getUserViewModel> =
         await this.usersQueryRepository.getAllUsers(queryData);
       return allUsers;
     } catch (e) {

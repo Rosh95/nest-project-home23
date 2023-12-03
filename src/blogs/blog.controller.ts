@@ -17,11 +17,7 @@ import { BlogService } from './blogs.service';
 import { BlogQueryRepository } from './blogQuery.repository';
 import { PostService } from '../posts/post.service';
 import { PostQueryRepository } from '../posts/postQuery.repository';
-import {
-  Helpers,
-  newPaginatorViewType,
-  queryDataType,
-} from '../helpers/helpers';
+import { Helpers, queryDataType } from '../helpers/helpers';
 import { BlogInputModel, BlogViewType } from './blogs.types';
 import { Request } from 'express';
 import { JwtService } from '../jwt/jwt.service';
@@ -48,15 +44,12 @@ export class BlogController {
   @Get()
   async getBlogs(@Query() query: any) {
     try {
-      const queryData: queryDataType =
-        await this.helpers.getDataFromQuery(query);
+      const queryData: queryDataType = this.helpers.getDataFromQuery(query);
 
       // const allBlogs: PaginatorBlogViewType =
       //   await this.blogQueryRepository.getAllBlogs(queryData);
 
-      const allBlogs: newPaginatorViewType<BlogViewType> =
-        await this.blogQueryRepository.getAllBlogs(queryData);
-      return allBlogs;
+      return await this.blogQueryRepository.getAllBlogs(queryData);
     } catch (e) {
       console.log(e);
       return new Error('something wrong');
