@@ -166,7 +166,12 @@ export class PostController {
   @Put(':postId')
   @HttpCode(204)
   async updatePost(
-    @Query() { title, shortDescription, content },
+    @Body()
+    postUpdateData: {
+      title: string;
+      shortDescription: string;
+      content: string;
+    },
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
   ) {
     const isExistPost = await this.postQueryRepository.findPostById(
@@ -177,9 +182,9 @@ export class PostController {
     }
     try {
       const updatedPostData: postInputUpdatedDataModel = {
-        content: content,
-        title: title,
-        shortDescription: shortDescription,
+        content: postUpdateData.content,
+        title: postUpdateData.title,
+        shortDescription: postUpdateData.shortDescription,
       };
       const isPostUpdated: boolean = await this.postService.updatePost(
         postId.toString(),

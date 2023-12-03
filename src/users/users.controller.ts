@@ -8,11 +8,10 @@ import {
   NotFoundException,
   Param,
   Post,
-  Req,
+  Query,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { Request } from 'express';
 import { Helpers, queryDataType } from '../helpers/helpers';
 import {
   getUserViewModel,
@@ -32,11 +31,10 @@ export class UsersController {
     public helpers: Helpers,
   ) {}
   @Get()
-  async getUsers(@Req() req: Request) {
+  async getUsers(@Query() query: any) {
     try {
-      const queryData: queryDataType = await this.helpers.getDataFromQuery(
-        req.query,
-      );
+      const queryData: queryDataType =
+        await this.helpers.getDataFromQuery(query);
       const allUsers: PaginatorUserViewType =
         await this.usersQueryRepository.getAllUsers(queryData);
       return allUsers;
@@ -54,7 +52,7 @@ export class UsersController {
       userId.toString(),
     );
     if (!isExistUser) {
-      return false;
+      throw new NotFoundException();
     }
     try {
       const user: getUserViewModel | null =
@@ -71,17 +69,18 @@ export class UsersController {
   async deleteUserById(
     @Param('userId', new ParseObjectIdPipe()) userId: Types.ObjectId,
   ) {
-    try {
-      const isDeleted: boolean = await this.userService.deleteUser(
-        userId.toString(),
-      );
-      if (isDeleted) {
-        return true;
-      } else throw new NotFoundException();
-    } catch (e) {
-      console.log(e);
-      throw new ServiceUnavailableException();
+    const isExistUser = await this.usersQueryRepository.findUserById(
+      userId.toString(),
+    );
+    if (!isExistUser) {
+      throw new NotFoundException();
     }
+    const isDeleted: boolean = await this.userService.deleteUser(
+      userId.toString(),
+    );
+    if (isDeleted) {
+      return true;
+    } else throw new NotFoundException();
   }
 
   @Post()
