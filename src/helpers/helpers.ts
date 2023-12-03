@@ -16,7 +16,7 @@ export class Helpers {
     const pageNumber: number = query.pageNumber ? +query.pageNumber : 1; // NaN
     const pageSize: number = query.pageSize ? +query.pageSize : 10; // NaN
     const sortBy: string = query.sortBy ? query.sortBy : 'createdAt';
-    const sortDirection: SortDirection = query.sortDirection === 'asc' ? 1 : -1;
+    const sortDirection: SortDirection = query.sortDirection === 'asc' ? -1 : 1;
     const searchNameTerm = query.searchNameTerm ? query.searchNameTerm : '';
     const searchLoginTerm = query.searchLoginTerm ? query.searchLoginTerm : '';
     const searchEmailTerm = query.searchEmailTerm ? query.searchEmailTerm : '';

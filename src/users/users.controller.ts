@@ -35,6 +35,7 @@ export class UsersController {
     try {
       const queryData: queryDataType =
         await this.helpers.getDataFromQuery(query);
+      console.log(queryData);
       const allUsers: PaginatorUserViewType =
         await this.usersQueryRepository.getAllUsers(queryData);
       return allUsers;
