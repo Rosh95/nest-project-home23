@@ -4,17 +4,13 @@ import { PostQueryRepository } from './postQuery.repository';
 import { BlogViewType } from '../blogs/blogs.types';
 import { ObjectId } from 'mongodb';
 import { BlogQueryRepository } from '../blogs/blogQuery.repository';
-import {
-  PostDBModel,
-  postInputDataModel,
-  postInputDataModelForExistingBlog,
-  postInputUpdatedDataModel,
-} from './post.types';
+import { CreatePostDto, PostDBModel, postInputDataModel } from './post.types';
 import { ResultObject } from '../helpers/heplersType';
-import { NewUsersDBType } from '../users/user.types';
+import { getUserViewModel } from '../users/user.types';
 import { LikeStatusOption } from '../comments/comments.types';
 import { LikeStatusDBType } from '../likeStatus/likeStatus.type';
 import { LikeStatusModel } from '../db/dbMongo';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class PostService {
@@ -48,7 +44,7 @@ export class PostService {
 
   async createPostForExistingBlog(
     blogId: string,
-    postInputData: postInputDataModelForExistingBlog,
+    postInputData: CreatePostDto,
   ): Promise<ResultObject<string>> {
     const foundBlog = await this.blogQueryRepository.findBlogById(blogId);
 
@@ -66,7 +62,7 @@ export class PostService {
 
   async updatePost(
     postId: string,
-    updatedPostData: postInputUpdatedDataModel,
+    updatedPostData: CreatePostDto,
   ): Promise<boolean> {
     return await this.postRepository.updatePost(postId, updatedPostData);
   }
@@ -74,26 +70,26 @@ export class PostService {
   async updatePostLikeStatusById(
     postInfo: PostDBModel,
     newLikeStatusForComment: LikeStatusOption,
-    currentUser: NewUsersDBType,
+    currentUser: getUserViewModel,
   ) {
     const findPostLikeStatusInDB: LikeStatusDBType | null =
       await LikeStatusModel.findOne({
         entityId: postInfo._id,
-        userId: currentUser._id,
+        userId: new Types.ObjectId(currentUser.id),
       });
 
     if (!findPostLikeStatusInDB) {
       await this.postRepository.createLikeStatusForPost(
         postInfo._id,
-        currentUser._id,
-        currentUser.accountData.login,
+        new Types.ObjectId(currentUser.id),
+        currentUser.login,
         newLikeStatusForComment,
       );
       return true;
     }
     await this.postRepository.updatePostLikeStatus(
       postInfo._id,
-      currentUser._id,
+      new Types.ObjectId(currentUser.id),
       newLikeStatusForComment,
     );
 

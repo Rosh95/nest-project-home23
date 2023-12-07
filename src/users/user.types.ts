@@ -1,4 +1,11 @@
 import { ObjectId } from 'mongodb';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  Length,
+  Matches,
+} from 'class-validator';
 
 export type UserViewModel = {
   id: string;
@@ -73,3 +80,28 @@ export type PaginatorUserViewType = {
 //     isConfirmed: { type: Boolean, default: false },
 //   },
 // });
+
+// export type UserInputType = {
+//   login: string;
+//   password: string;
+//   email: string;
+// };
+
+export class CreateUserDto {
+  @IsNotEmpty()
+  @IsString()
+  @Length(3, 10)
+  @Matches('^[a-zA-Z0-9_-]*$')
+  login: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 20)
+  password: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Matches('^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$\n')
+  @IsEmail()
+  email: string;
+}

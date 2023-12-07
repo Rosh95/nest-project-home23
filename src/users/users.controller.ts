@@ -8,8 +8,6 @@ import {
   NotFoundException,
   Param,
   Post,
-  Query,
-  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -18,11 +16,12 @@ import {
   newPaginatorViewType,
   queryDataType,
 } from '../helpers/helpers';
-import { getUserViewModel, UserInputType } from './user.types';
+import { CreateUserDto, getUserViewModel } from './user.types';
 import { UsersQueryRepository } from './usersQuery.repository';
 import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
 import { Types } from 'mongoose';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
+import { QueryData } from '../helpers/decorators/helpers.decorator.queryData';
 
 @Injectable()
 @Controller('users')
@@ -35,17 +34,10 @@ export class UsersController {
 
   @UseGuards(BasicAuthGuard)
   @Get()
-  async getUsers(@Query() query: any) {
-    try {
-      const queryData: queryDataType = this.helpers.getDataFromQuery(query);
-      console.log(queryData);
-      const allUsers: newPaginatorViewType<getUserViewModel> =
-        await this.usersQueryRepository.getAllUsers(queryData);
-      return allUsers;
-    } catch (e) {
-      console.log(e);
-      throw new ServiceUnavailableException();
-    }
+  async getUsers(@QueryData() queryData: queryDataType) {
+    const allUsers: newPaginatorViewType<getUserViewModel> =
+      await this.usersQueryRepository.getAllUsers(queryData);
+    return allUsers;
   }
 
   @Get(':userId')
@@ -55,17 +47,11 @@ export class UsersController {
     const isExistUser = await this.usersQueryRepository.findUserById(
       userId.toString(),
     );
-    if (!isExistUser) {
-      throw new NotFoundException();
-    }
-    try {
-      const user: getUserViewModel | null =
-        await this.usersQueryRepository.findUserById(userId.toString());
-      return user;
-    } catch (e) {
-      console.log(e);
-      throw new ServiceUnavailableException();
-    }
+    if (!isExistUser) throw new NotFoundException();
+
+    const user: getUserViewModel | null =
+      await this.usersQueryRepository.findUserById(userId.toString());
+    return user;
   }
 
   @UseGuards(BasicAuthGuard)
@@ -77,29 +63,21 @@ export class UsersController {
     const isExistUser = await this.usersQueryRepository.findUserById(
       userId.toString(),
     );
-    if (!isExistUser) {
-      throw new NotFoundException();
-    }
-    const isDeleted: boolean = await this.userService.deleteUser(
-      userId.toString(),
-    );
-    if (isDeleted) {
-      return true;
-    } else throw new NotFoundException();
+    if (!isExistUser) throw new NotFoundException();
+
+    return await this.userService.deleteUser(userId.toString());
   }
 
   @UseGuards(BasicAuthGuard)
   @Post()
-  async createUser(
-    @Body() body: { email: string; login: string; password: string },
-  ) {
-    const userPostInputData: UserInputType = {
-      email: body.email,
-      login: body.login,
-      password: body.password,
-    };
+  async createUser(@Body() createUserDto: CreateUserDto) {
+    // const userPostInputData: UserInputType = {
+    //   email: body.email,
+    //   login: body.login,
+    //   password: body.password,
+    // };
     const newUser: getUserViewModel | null =
-      await this.userService.createUser(userPostInputData);
+      await this.userService.createUser(createUserDto);
     // await userService.createUser(userPostInputData);
     return newUser;
   }

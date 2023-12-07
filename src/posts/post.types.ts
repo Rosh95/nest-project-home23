@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { LikeStatusOption } from '../comments/comments.types';
+import { IsNotEmpty, IsString, Length } from 'class-validator';
 
 export type PostLikesUsersModel = {
   addedAt: string;
@@ -47,16 +48,6 @@ export type postInputDataModel = {
   content: string;
   blogId: string;
 };
-export type postInputDataModelForExistingBlog = {
-  title: string;
-  shortDescription: string;
-  content: string;
-};
-export type postInputUpdatedDataModel = {
-  title: string;
-  shortDescription: string;
-  content: string;
-};
 
 export type PaginatorPostViewType = {
   pagesCount: number;
@@ -74,3 +65,20 @@ export type PaginatorPostViewType = {
 //   blogName: { type: String, require: true },
 //   createdAt: { type: Date, default: Date.now() },
 // });
+
+export class CreatePostDto {
+  @IsNotEmpty()
+  @IsString()
+  @Length(1, 30)
+  title: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(1, 100)
+  shortDescription: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(1, 1000)
+  content: string;
+}

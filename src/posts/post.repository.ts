@@ -1,5 +1,5 @@
 import { Injectable, Post } from '@nestjs/common';
-import { PostDBModel, postInputUpdatedDataModel } from './post.types';
+import { CreatePostDto, PostDBModel } from './post.types';
 import { ResultCode, ResultObject } from '../helpers/heplersType';
 import { LikeStatusOption } from '../comments/comments.types';
 import {
@@ -62,7 +62,7 @@ export class PostRepository {
 
   async updatePost(
     id: string,
-    updatedPostData: postInputUpdatedDataModel,
+    updatedPostData: CreatePostDto,
   ): Promise<boolean> {
     const result = await this.postModel.updateOne(
       { _id: new Types.ObjectId(id) },
