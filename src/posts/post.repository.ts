@@ -1,5 +1,4 @@
 import { Injectable, Post } from '@nestjs/common';
-import { ObjectId } from 'mongodb';
 import { PostDBModel, postInputUpdatedDataModel } from './post.types';
 import { ResultCode, ResultObject } from '../helpers/heplersType';
 import { LikeStatusOption } from '../comments/comments.types';
@@ -11,6 +10,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PostDocument } from './post.schema';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class PostRepository {
@@ -21,7 +21,9 @@ export class PostRepository {
   ) {}
 
   async deletePost(id: string): Promise<boolean> {
-    const result = await this.postModel.deleteOne({ _id: new ObjectId(id) });
+    const result = await this.postModel.deleteOne({
+      _id: new Types.ObjectId(id),
+    });
     return result.deletedCount === 1;
   }
 
@@ -63,7 +65,7 @@ export class PostRepository {
     updatedPostData: postInputUpdatedDataModel,
   ): Promise<boolean> {
     const result = await this.postModel.updateOne(
-      { _id: new ObjectId(id) },
+      { _id: new Types.ObjectId(id) },
       {
         $set: {
           title: updatedPostData.title,
@@ -76,8 +78,8 @@ export class PostRepository {
   }
 
   async createLikeStatusForPost(
-    entityId: ObjectId,
-    userId: ObjectId,
+    entityId: Types.ObjectId,
+    userId: Types.ObjectId,
     userLogin: string,
     likeStatus: LikeStatusOption,
   ) {
@@ -93,8 +95,8 @@ export class PostRepository {
   }
 
   async updatePostLikeStatus(
-    entityId: ObjectId,
-    userId: ObjectId,
+    entityId: Types.ObjectId,
+    userId: Types.ObjectId,
     likeStatus: LikeStatusOption,
   ) {
     // const newLikeStatus: LikeStatusDBType = {

@@ -9,6 +9,7 @@ import { UsersService } from '../users/users.service';
 import {
   CurrentUserInfoType,
   getUserViewModel,
+  NewUsersDBType,
   UserInputType,
 } from '../users/user.types';
 import { emailAdapter } from '../email/email.adapter';
@@ -23,7 +24,7 @@ export class AuthController {
     public userService: UsersService,
   ) {}
 
-  @Post()
+  @Post('/login')
   async loginUser(
     @Req() req: Request,
     @Res() res: Response,
@@ -125,10 +126,11 @@ export class AuthController {
       res.sendStatus(401);
       return;
     }
+    const currentUser = req.user as NewUsersDBType;
     const currentUserInfo: CurrentUserInfoType = {
-      login: req.user!.accountData.login,
-      email: req.user!.accountData.email,
-      userId: req.user!._id.toString(),
+      login: currentUser.accountData.login,
+      email: currentUser.accountData.email,
+      userId: currentUser._id.toString(),
     };
     if (req.user) {
       return res.status(200).send(currentUserInfo);
@@ -136,7 +138,8 @@ export class AuthController {
     return res.sendStatus(404);
   }
 
-  async registrationUser(req: Request, res: Response) {
+  @Post('/registration')
+  async registrationUser(@Req() req: Request, @Res() res: Response) {
     const userPostInputData: UserInputType = {
       email: req.body.email,
       login: req.body.login,

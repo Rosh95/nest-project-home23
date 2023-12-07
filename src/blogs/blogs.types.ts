@@ -1,5 +1,13 @@
-import { ObjectId } from 'mongodb';
+import {
+  IsNotEmpty,
+  isNotEmpty,
+  IsString,
+  Length,
+  Matches,
+} from 'class-validator';
+import { Types } from 'mongoose';
 
+isNotEmpty;
 export type BlogPostInputModel = {
   content: string;
   shortDescription: string;
@@ -14,7 +22,7 @@ export type BlogInputModel = {
 };
 
 export type BlogDbType = {
-  _id: ObjectId;
+  _id: Types.ObjectId;
   name: string;
   description: string;
   websiteUrl: string;
@@ -38,3 +46,23 @@ export type PaginatorBlogViewType = {
   totalCount: number;
   items: BlogViewType[];
 };
+
+export class CreateBlogDto {
+  @IsNotEmpty()
+  @IsString()
+  @Length(1, 15)
+  name: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(1, 500)
+  description: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(1, 100)
+  @Matches(
+    '^https://([a-zA-Z0-9_-]+\\.)+[a-zA-Z0-9_-]+(\\/[a-zA-Z0-9_-]+)*\\/?$',
+  )
+  websiteUrl: string;
+}

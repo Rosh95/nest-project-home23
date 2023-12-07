@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   ServiceUnavailableException,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import {
@@ -21,6 +22,7 @@ import { getUserViewModel, UserInputType } from './user.types';
 import { UsersQueryRepository } from './usersQuery.repository';
 import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
 import { Types } from 'mongoose';
+import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 
 @Injectable()
 @Controller('users')
@@ -30,6 +32,8 @@ export class UsersController {
     public usersQueryRepository: UsersQueryRepository,
     public helpers: Helpers,
   ) {}
+
+  @UseGuards(BasicAuthGuard)
   @Get()
   async getUsers(@Query() query: any) {
     try {
@@ -64,6 +68,7 @@ export class UsersController {
     }
   }
 
+  @UseGuards(BasicAuthGuard)
   @Delete(':userId')
   @HttpCode(204)
   async deleteUserById(
@@ -83,6 +88,7 @@ export class UsersController {
     } else throw new NotFoundException();
   }
 
+  @UseGuards(BasicAuthGuard)
   @Post()
   async createUser(
     @Body() body: { email: string; login: string; password: string },

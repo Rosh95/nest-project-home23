@@ -10,6 +10,7 @@ import {
   Param,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CommentsRepository } from './comments.repository';
@@ -19,6 +20,8 @@ import { Request } from 'express';
 import { ObjectId } from 'mongodb';
 import { jwtService } from '../jwt/jwt.service';
 import { CommentsViewModel, LikeStatusOption } from './comments.types';
+import { NewUsersDBType } from '../users/user.types';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Injectable()
 @Controller('comments')
@@ -47,6 +50,7 @@ export class CommentsController {
     return commentInfo;
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':commentId')
   @HttpCode(204)
   async deleteCommentById(@Param('commentId') commentId: string) {
@@ -67,7 +71,8 @@ export class CommentsController {
     }
   }
 
-  @Put('commentId')
+  @UseGuards(JwtAuthGuard)
+  @Put(':commentId')
   @HttpCode(204)
   async updateComment(
     @Param('commentId') commentId: string,
@@ -92,7 +97,9 @@ export class CommentsController {
       throw new InternalServerErrorException();
     }
   }
-  @Put('commentId')
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':commentId/like-status')
   @HttpCode(204)
   async updateCommentLikeStatus(
     @Param('commentId') commentId: string,
@@ -110,7 +117,7 @@ export class CommentsController {
       await this.commentsService.updateCommentLikeStatusById(
         commentInfo,
         likeStatus,
-        currentUser!,
+        currentUser! as NewUsersDBType,
       );
       return true;
     } catch (e) {

@@ -7,7 +7,7 @@ import { UserRepository } from './users/user.repository';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Cat, CatSchema } from './cats/cats-shema';
 import { CatsRepository } from './cats/cats.repository';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { getMongoUri } from './getMongoUri';
 import { PostController } from './posts/post.controller';
 import { AuthController } from './auth/auth.controller';
@@ -47,11 +47,21 @@ import { User, UsersSchema } from './users/user.schema';
 import { TestingController } from './testingDelete/testing.controller';
 import { TestingService } from './testingDelete/testing.service';
 import { TestingRepository } from './testingDelete/testing.repository';
+import { BasicStrategy } from './auth/strategies/basic.strategy';
+import { BasicAuthGuard } from './auth/guards/basic-auth.guard';
+import { JwtStrategy } from './auth/strategies/jwt.strategy';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { JwtModule } from '@nestjs/jwt';
+import { settings } from './settings';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(getMongoUri()),
+    JwtModule.register({
+      secret: settings.JWT_SECRET,
+      signOptions: { expiresIn: '10m' },
+    }),
     MongooseModule.forFeature([
       { name: Cat.name, schema: CatSchema },
       { name: Blog.name, schema: BlogSchema },
@@ -98,6 +108,11 @@ import { TestingRepository } from './testingDelete/testing.repository';
     Helpers,
     TestingService,
     TestingRepository,
+    ConfigService,
+    BasicStrategy,
+    BasicAuthGuard,
+    JwtStrategy,
+    JwtAuthGuard,
   ],
 })
 export class AppModule {}

@@ -12,6 +12,7 @@ import {
   Put,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { PostRepository } from './post.repository';
@@ -37,6 +38,9 @@ import { CommentsService } from '../comments/comments.service';
 import { CommentsQueryRepository } from '../comments/commentsQuery.repository';
 import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
 import { Types } from 'mongoose';
+import { NewUsersDBType } from '../users/user.types';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 
 @Injectable()
 @Controller('posts')
@@ -104,6 +108,7 @@ export class PostController {
     }
   }
 
+  @UseGuards(BasicAuthGuard)
   @Delete(':postId')
   @HttpCode(204)
   async deletePostById(
@@ -122,6 +127,7 @@ export class PostController {
     return;
   }
 
+  @UseGuards(BasicAuthGuard)
   @Post()
   async createPost(
     @Body()
@@ -163,6 +169,7 @@ export class PostController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':postId')
   @HttpCode(204)
   async updatePost(
@@ -196,7 +203,8 @@ export class PostController {
     }
   }
 
-  @Post(':id')
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/comments')
   async createCommentForPostById(
     @Param('id', new ParseObjectIdPipe()) id: Types.ObjectId,
     @Req() req: Request,
@@ -210,10 +218,11 @@ export class PostController {
       if (!req.user) {
         throw new Error('user doesn`t exist');
       }
+      const currentUser = req.user as NewUsersDBType;
       const newCommentData: CommentsInputData = {
         content: req.body.content,
-        userId: req.user._id,
-        userLogin: req.user.accountData.login,
+        userId: currentUser._id,
+        userLogin: currentUser.accountData.login,
         postId: req.params.postId,
       };
 
@@ -221,7 +230,7 @@ export class PostController {
         await this.commentsService.createCommentForPost(newCommentData);
       const newComment = await this.commentQueryRepository.getCommentById(
         newCommentObjectId.toString(),
-        req.user._id,
+        currentUser._id,
       );
       return newComment;
     } catch (e) {
@@ -262,6 +271,7 @@ export class PostController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':postId/like-status')
   @HttpCode(204)
   async updatePostLikeStatus(
@@ -278,7 +288,7 @@ export class PostController {
       await this.postService.updatePostLikeStatusById(
         postInfo,
         req.body.likeStatus,
-        currentUser!,
+        currentUser! as NewUsersDBType,
       );
       return true;
     } catch (e) {

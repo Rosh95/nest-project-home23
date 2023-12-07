@@ -12,13 +12,14 @@ import {
   Put,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { BlogService } from './blogs.service';
 import { BlogQueryRepository } from './blogQuery.repository';
 import { PostService } from '../posts/post.service';
 import { PostQueryRepository } from '../posts/postQuery.repository';
 import { Helpers, queryDataType } from '../helpers/helpers';
-import { BlogInputModel, BlogViewType } from './blogs.types';
+import { BlogInputModel, BlogViewType, CreateBlogDto } from './blogs.types';
 import { Request } from 'express';
 import { JwtService } from '../jwt/jwt.service';
 import {
@@ -29,6 +30,7 @@ import {
 import { ResultObject } from '../helpers/heplersType';
 import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
 import { Types } from 'mongoose';
+import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 
 @Injectable()
 @Controller('blogs')
@@ -55,6 +57,8 @@ export class BlogController {
       return new Error('something wrong');
     }
   }
+  //@UseGuards(BasicAuthGuard)
+  @UseGuards(BasicAuthGuard)
   @Get(':blogId')
   async getBlogById(
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
@@ -67,12 +71,14 @@ export class BlogController {
     }
     const foundBlog: BlogViewType | null =
       await this.blogQueryRepository.findBlogById(blogId.toString());
+
     if (foundBlog) {
       return foundBlog;
     }
     return new Error('something wrong status 404');
   }
 
+  @UseGuards(BasicAuthGuard)
   @Delete(':blogId')
   @HttpCode(204)
   // @HttpStatus(HttpStatusCode.NO_CONTENT)
@@ -95,12 +101,12 @@ export class BlogController {
 
   @Post()
   // @HttpStatus(HttpStatusCode.CREATED)
-  async createBlog(@Body() { name, description, websiteUrl }) {
+  async createBlog(@Body() inputData: CreateBlogDto) {
     try {
       const BlogInputData: BlogInputModel = {
-        name: name,
-        description: description,
-        websiteUrl: websiteUrl,
+        name: inputData.name,
+        description: inputData.description,
+        websiteUrl: inputData.websiteUrl,
       };
       const newBlog: BlogViewType =
         await this.blogService.createBlog(BlogInputData);
@@ -112,6 +118,7 @@ export class BlogController {
     }
   }
 
+  @UseGuards(BasicAuthGuard)
   @Put(':id')
   @HttpCode(204)
   async updateBlog(
@@ -171,6 +178,7 @@ export class BlogController {
     }
   }
 
+  @UseGuards(BasicAuthGuard)
   @Post(':blogId/posts')
   @HttpCode(201)
   async createPostForBlogById(

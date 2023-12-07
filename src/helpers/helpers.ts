@@ -1,4 +1,5 @@
 import { SortDirection } from 'mongodb';
+import { validateOrReject } from 'class-validator';
 
 export type queryDataType = {
   pageNumber: number;
@@ -35,6 +36,17 @@ export class Helpers {
   }
   skipPages(pageNumber: number, pageSize: number) {
     return (+pageNumber - 1) * +pageSize;
+  }
+
+  async validateOrRejectModel(model: any, ctor: any) {
+    if (model instanceof ctor === false) {
+      throw new Error('Incorrect input data');
+    }
+    try {
+      await validateOrReject(model);
+    } catch (error) {
+      throw new Error(error);
+    }
   }
 }
 export class newPaginatorViewType<T> {
