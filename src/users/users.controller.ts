@@ -71,6 +71,7 @@ export class UsersController {
   @UseGuards(BasicAuthGuard)
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
+    debugger;
     // const userPostInputData: UserInputType = {
     //   email: body.email,
     //   login: body.login,

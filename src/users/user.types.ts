@@ -101,7 +101,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsString()
-  @Matches('^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$\n')
+  // @Matches('^[w-.]+@([w-]+.)+[w-]{2,4}$')
   @IsEmail()
   email: string;
 }
