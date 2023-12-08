@@ -84,6 +84,7 @@ export class BlogController {
   @Post()
   // @HttpStatus(HttpStatusCode.CREATED)
   async createBlog(@Body() inputData: CreateBlogDto) {
+    inputData.name = '';
     const newBlog: BlogViewType = await this.blogService.createBlog(inputData);
 
     return newBlog;

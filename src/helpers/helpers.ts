@@ -1,5 +1,6 @@
 import { SortDirection } from 'mongodb';
 import { validateOrReject } from 'class-validator';
+import { BadRequestException } from '@nestjs/common';
 
 export type queryDataType = {
   pageNumber: number;
@@ -44,8 +45,21 @@ export class Helpers {
     }
     try {
       await validateOrReject(model);
+      return true;
     } catch (error) {
-      throw new Error(error);
+      const errorsForResponse: any = [];
+
+      error.forEach((e) => {
+        const constraintsKeys = Object.keys(e.constraints!);
+        constraintsKeys.forEach((ckey) => {
+          errorsForResponse.push({
+            message: e.constraints![ckey],
+            field: e.property,
+          });
+        });
+      });
+
+      throw new BadRequestException(errorsForResponse);
     }
   }
 }

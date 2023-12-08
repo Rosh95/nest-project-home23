@@ -23,11 +23,11 @@ export class BlogService {
   }
 
   async createBlog(blogData: CreateBlogDto): Promise<BlogViewType> {
-    // const khe = await this.helpers.validateOrRejectModel(
-    //   blogData,
-    //   CreateBlogDto,
-    // );
-    // console.log(khe);
+    const khe = await this.helpers.validateOrRejectModel(
+      blogData,
+      CreateBlogDto,
+    );
+    console.log(khe);
     const newBlog: BlogDbType = {
       _id: new ObjectId(),
       name: blogData.name,

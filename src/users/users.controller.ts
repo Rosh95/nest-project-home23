@@ -11,11 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import {
-  Helpers,
-  newPaginatorViewType,
-  queryDataType,
-} from '../helpers/helpers';
+import { newPaginatorViewType, queryDataType } from '../helpers/helpers';
 import { CreateUserDto, getUserViewModel } from './user.types';
 import { UsersQueryRepository } from './usersQuery.repository';
 import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
@@ -29,7 +25,6 @@ export class UsersController {
   constructor(
     public userService: UsersService,
     public usersQueryRepository: UsersQueryRepository,
-    public helpers: Helpers,
   ) {}
 
   @UseGuards(BasicAuthGuard)
@@ -71,15 +66,8 @@ export class UsersController {
   @UseGuards(BasicAuthGuard)
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
-    debugger;
-    // const userPostInputData: UserInputType = {
-    //   email: body.email,
-    //   login: body.login,
-    //   password: body.password,
-    // };
     const newUser: getUserViewModel | null =
       await this.userService.createUser(createUserDto);
-    // await userService.createUser(userPostInputData);
     return newUser;
   }
 }
