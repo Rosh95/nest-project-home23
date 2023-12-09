@@ -2,17 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { ObjectId } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
-import { getUserViewModel, NewUsersDBType, UserInputType } from './user.types';
+import { CreateUserDto, getUserViewModel, NewUsersDBType } from './user.types';
 import bcrypt from 'bcrypt';
 import add from 'date-fns/add';
+import { Types } from 'mongoose';
+import { Helpers } from '../helpers/helpers';
 
 @Injectable()
 export class UsersService {
-  constructor(public userRepository: UserRepository) {}
+  constructor(
+    public userRepository: UserRepository,
+    public helpers: Helpers,
+  ) {}
 
   async createUser(
-    userPostInputData: UserInputType,
+    userPostInputData: CreateUserDto,
   ): Promise<getUserViewModel | null> {
+    await this.helpers.validateOrRejectModel(userPostInputData, CreateUserDto);
     const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this._generateHash(
       userPostInputData.password,
@@ -59,8 +65,10 @@ export class UsersService {
     return await this.userRepository.findUserByEmail(email);
   }
 
-  async deleteUser(id: string): Promise<boolean> {
-    const idInMongo = new ObjectId(id);
+  async deleteUser(userId: string): Promise<boolean | null> {
+    const isExistUser = await this.userRepository.findUserById(userId);
+    if (!isExistUser) return null;
+    const idInMongo = new Types.ObjectId(userId);
     return await this.userRepository.deleteUser(idInMongo);
   }
 

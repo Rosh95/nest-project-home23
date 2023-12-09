@@ -82,3 +82,10 @@ export class CreatePostDto {
   @Length(1, 1000)
   content: string;
 }
+
+export class CreateCommentDto {
+  @IsNotEmpty()
+  @IsString()
+  @Length(20, 300)
+  content: string;
+}

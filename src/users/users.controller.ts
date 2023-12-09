@@ -39,14 +39,9 @@ export class UsersController {
   async getUserById(
     @Param('userId', new ParseObjectIdPipe()) userId: Types.ObjectId,
   ) {
-    const isExistUser = await this.usersQueryRepository.findUserById(
-      userId.toString(),
-    );
-    if (!isExistUser) throw new NotFoundException();
-
     const user: getUserViewModel | null =
       await this.usersQueryRepository.findUserById(userId.toString());
-    return user;
+    return user ? user : new NotFoundException();
   }
 
   @UseGuards(BasicAuthGuard)
@@ -55,12 +50,8 @@ export class UsersController {
   async deleteUserById(
     @Param('userId', new ParseObjectIdPipe()) userId: Types.ObjectId,
   ) {
-    const isExistUser = await this.usersQueryRepository.findUserById(
-      userId.toString(),
-    );
-    if (!isExistUser) throw new NotFoundException();
-
-    return await this.userService.deleteUser(userId.toString());
+    const result = await this.userService.deleteUser(userId.toString());
+    return result ? result : new NotFoundException();
   }
 
   @UseGuards(BasicAuthGuard)

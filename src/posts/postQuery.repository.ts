@@ -12,6 +12,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { LikeStatus, LikeStatusDocument } from '../likeStatus/likeStatus.type';
 import { PostDocument } from './post.schema';
+import { BlogQueryRepository } from '../blogs/blogQuery.repository';
 
 @Injectable()
 export class PostQueryRepository {
@@ -19,6 +20,7 @@ export class PostQueryRepository {
     @InjectModel(Post.name) public postModel: Model<PostDocument>,
     @InjectModel(LikeStatus.name)
     public likeStatusModel: Model<LikeStatusDocument>,
+    public blogQueryRepository: BlogQueryRepository,
   ) {}
 
   async getAllPosts(
@@ -70,14 +72,18 @@ export class PostQueryRepository {
     blogId: string,
     queryData: queryDataType,
     userId?: ObjectId | null,
-  ): Promise<PaginatorPostViewType> {
+  ): Promise<PaginatorPostViewType | null> {
+    const isExistBlog = await this.blogQueryRepository.findBlogById(
+      blogId.toString(),
+    );
+    if (!isExistBlog) return null;
+
     const posts = await this.postModel
       .find({ blogId })
       .sort({ [queryData.sortBy]: queryData.sortDirection })
       .skip(queryData.skippedPages)
       .limit(queryData.pageSize)
       .lean();
-    console.log(posts);
     const postViewArray: PostViewModel[] = await Promise.all(
       posts.map(async (post) => this.postMapping(post, userId)),
     );

@@ -9,9 +9,7 @@ import {
   Param,
   Post,
   Put,
-  Query,
   Req,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { BlogService } from './blogs.service';
@@ -48,7 +46,6 @@ export class BlogController {
 
   @Get()
   async getBlogs(@QueryData() queryData: queryDataType) {
-    // const queryData: queryDataType = this.helpers.getDataFromQuery(queryData);
     return await this.blogQueryRepository.getAllBlogs(queryData);
   }
 
@@ -57,14 +54,9 @@ export class BlogController {
   async getBlogById(
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
   ) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(
-      blogId.toString(),
-    );
-    if (!isExistBlog) throw new NotFoundException();
     const foundBlog: BlogViewType | null =
       await this.blogQueryRepository.findBlogById(blogId.toString());
-
-    return foundBlog ? foundBlog : new Error('something wrong status 404');
+    return foundBlog ? foundBlog : new NotFoundException();
   }
 
   @UseGuards(BasicAuthGuard)
@@ -73,19 +65,13 @@ export class BlogController {
   async deleteBlog(
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
   ) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(
-      blogId.toString(),
-    );
-    if (!isExistBlog) throw new NotFoundException();
-
-    return await this.blogService.deleteBlog(blogId.toString());
+    const result = await this.blogService.deleteBlog(blogId.toString());
+    return result ? result : new NotFoundException();
   }
 
   @Post()
-  // @HttpStatus(HttpStatusCode.CREATED)
   async createBlog(@Body() inputData: CreateBlogDto) {
     const newBlog: BlogViewType = await this.blogService.createBlog(inputData);
-
     return newBlog;
   }
 
@@ -96,15 +82,11 @@ export class BlogController {
     @Param('id', new ParseObjectIdPipe()) id: Types.ObjectId,
     @Body() createBlogDto: CreateBlogDto,
   ) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(
-      id.toString(),
-    );
-    if (!isExistBlog) throw new NotFoundException();
-    const isBlogUpdate: boolean = await this.blogService.updateBlog(
+    const isBlogUpdate: boolean | null = await this.blogService.updateBlog(
       id.toString(),
       createBlogDto,
     );
-    return isBlogUpdate;
+    return isBlogUpdate ? isBlogUpdate : new NotFoundException();
   }
 
   @Get(':blogId/posts')
@@ -114,45 +96,33 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @AccessTokenHeader() accessToken: string,
   ) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(
-      blogId.toString(),
-    );
-    if (!isExistBlog) throw new NotFoundException();
-
-    if (!accessToken) throw new UnauthorizedException();
-
-    const userId = await this.jwtService.getUserIdByAccessToken(accessToken);
-
-    // const queryData: queryDataType =
-    //   await this.helpers.getDataFromQuery(query);
-    const foundPosts: PaginatorPostViewType =
+    const currentAccessToken = accessToken ? accessToken : null;
+    const userId =
+      await this.jwtService.getUserIdByAccessToken(currentAccessToken);
+    const foundPosts: PaginatorPostViewType | null =
       await this.postQueryRepository.getAllPostOfBlog(
         blogId.toString(),
         queryData,
         userId,
       );
-    return foundPosts;
+    return foundPosts ? foundPosts : null;
   }
 
   @UseGuards(BasicAuthGuard)
   @Post(':blogId/posts')
   @HttpCode(201)
   async createPostForBlogById(
-    @Query() query: any,
+    @QueryData() queryData: queryDataType,
     @Req() req: Request,
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @Body() createPostDto: CreatePostDto,
   ) {
-    const isExistBlog = await this.blogQueryRepository.findBlogById(
-      blogId.toString(),
-    );
-    if (!isExistBlog) throw new NotFoundException();
-
-    const newPost: ResultObject<string> =
+    const newPost: ResultObject<string> | null =
       await this.postService.createPostForExistingBlog(
         blogId.toString(),
         createPostDto,
       );
+    if (!newPost) return new NotFoundException();
     const gotNewPost: PostViewModel | null = newPost.data
       ? await this.postQueryRepository.findPostById(newPost.data)
       : null;

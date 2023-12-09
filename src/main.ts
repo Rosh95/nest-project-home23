@@ -11,10 +11,10 @@ async function bootstrap() {
     new ValidationPipe({
       transform: true,
       stopAtFirstError: true,
-      exceptionFactory: (errors) => {
+      exceptionFactory: (errorsMessages) => {
         const errorsForResponse: any = [];
 
-        errors.forEach((e) => {
+        errorsMessages.forEach((e) => {
           const constraintsKeys = Object.keys(e.constraints!);
           constraintsKeys.forEach((ckey) => {
             errorsForResponse.push({

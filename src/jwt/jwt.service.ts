@@ -35,16 +35,14 @@ export class JwtService {
     };
   }
 
-  async getUserIdByAccessToken(token: string): Promise<ObjectId | null> {
-    try {
-      const result = jwt.verify(token, settings.JWT_SECRET) as {
-        userId: string;
-      };
-      console.log(result);
-      return new ObjectId(result.userId);
-    } catch (error) {
-      return null;
-    }
+  async getUserIdByAccessToken(token: string | null): Promise<ObjectId | null> {
+    const result = token
+      ? (jwt.verify(token, settings.JWT_SECRET) as {
+          userId: string;
+        })
+      : null;
+
+    return result ? new ObjectId(result.userId) : null;
   }
 
   async getUserIdByRefreshToken(token: string): Promise<ObjectId | null> {

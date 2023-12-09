@@ -14,23 +14,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PostService } from './post.service';
-import { PostRepository } from './post.repository';
 import { PostQueryRepository } from './postQuery.repository';
-import { BlogQueryRepository } from '../blogs/blogQuery.repository';
 import {
+  CreateCommentDto,
   CreatePostDto,
   PaginatorPostViewType,
-  postInputDataModel,
   PostViewModel,
 } from './post.types';
-import e, { Request } from 'express';
+import { Request } from 'express';
 import { Helpers, queryDataType } from '../helpers/helpers';
 import { ObjectId } from 'mongodb';
-import { BlogViewType } from '../blogs/blogs.types';
 import { ResultObject } from '../helpers/heplersType';
 import { JwtService } from '../jwt/jwt.service';
 import {
-  CommentsInputData,
   LikeStatusOption,
   PaginatorCommentViewType,
 } from '../comments/comments.types';
@@ -48,9 +44,7 @@ import { UsersQueryRepository } from '../users/usersQuery.repository';
 @Controller('posts')
 export class PostController {
   constructor(
-    public postRepository: PostRepository,
     public postQueryRepository: PostQueryRepository,
-    public blogQueryRepository: BlogQueryRepository,
     public postService: PostService,
     public commentsService: CommentsService,
     public commentQueryRepository: CommentsQueryRepository,
@@ -60,20 +54,15 @@ export class PostController {
   ) {}
 
   @Get()
-  //@Header('authorization', 'none')
   async getPosts(
     @QueryData() queryData: queryDataType,
     @Req() req: Request,
     @AccessTokenHeader() accessToken: string,
-    // userId : string | null
-    //@CurrentUserId: {userId :string} | {userId: null}
   ): Promise<PaginatorPostViewType | boolean> {
-    if (!accessToken) throw new UnauthorizedException();
-
-    const userId = await this.jwtService.getUserIdByAccessToken(accessToken);
-    const allPosts: PaginatorPostViewType =
-      await this.postQueryRepository.getAllPosts(queryData, userId);
-    return allPosts;
+    const currentAccessToken = accessToken ? accessToken : null;
+    const userId =
+      await this.jwtService.getUserIdByAccessToken(currentAccessToken);
+    return await this.postQueryRepository.getAllPosts(queryData, userId);
   }
 
   @Get(':postId')
@@ -81,17 +70,14 @@ export class PostController {
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
     @Req() req: Request,
     @AccessTokenHeader() accessToken: string,
-  ): Promise<PostViewModel | boolean | null> {
-    if (!accessToken) throw new UnauthorizedException();
-
-    const userId = await this.jwtService.getUserIdByAccessToken(accessToken);
-    const isExistPost = await this.postQueryRepository.findPostById(
-      postId.toString(),
-    );
-    if (!isExistPost) throw new NotFoundException();
+  ): Promise<PostViewModel | NotFoundException | null> {
+    const currentAccessToken = accessToken ? accessToken : null;
+    const userId =
+      await this.jwtService.getUserIdByAccessToken(currentAccessToken);
     const foundPost: PostViewModel | null =
       await this.postQueryRepository.findPostById(postId.toString(), userId);
-    return foundPost ? foundPost : false;
+    if (!foundPost) return new NotFoundException();
+    return foundPost ? foundPost : null;
   }
 
   @UseGuards(BasicAuthGuard)
@@ -100,15 +86,11 @@ export class PostController {
   async deletePostById(
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
   ): Promise<any> {
-    const isExistPost = await this.postQueryRepository.findPostById(
-      postId.toString(),
-    );
-    if (!isExistPost) throw new NotFoundException();
-    const isDeleted: boolean = await this.postService.deletePost(
+    const isDeleted: boolean | null = await this.postService.deletePost(
       postId.toString(),
     );
     if (!isDeleted) throw new NotFoundException();
-    return;
+    return true;
   }
 
   @UseGuards(BasicAuthGuard)
@@ -117,19 +99,9 @@ export class PostController {
     @Body() createPostDto: CreatePostDto,
     @Body() blogId: string,
   ) {
-    const foundBlog: BlogViewType | null =
-      await this.blogQueryRepository.findBlogById(blogId);
-    if (!foundBlog) return false;
-    const postInputData: postInputDataModel = {
-      title: createPostDto.title,
-      shortDescription: createPostDto.shortDescription,
-      content: createPostDto.content,
-      blogId: blogId,
-    };
-    const newPost: ResultObject<string> = await this.postService.createPost(
-      postInputData,
-      foundBlog,
-    );
+    const newPost: ResultObject<string> | null =
+      await this.postService.createPost(createPostDto, blogId);
+    if (!newPost) return new NotFoundException();
     const gotNewPost: PostViewModel | null = newPost.data
       ? await this.postQueryRepository.findPostById(newPost.data)
       : null;
@@ -143,39 +115,30 @@ export class PostController {
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
     @Body() createPostDto: CreatePostDto,
   ) {
-    const isExistPost = await this.postQueryRepository.findPostById(
-      postId.toString(),
-    );
-    if (!isExistPost) throw new NotFoundException();
-
-    const isPostUpdated: boolean = await this.postService.updatePost(
+    const isPostUpdated: boolean | null = await this.postService.updatePost(
       postId.toString(),
       createPostDto,
     );
-    return isPostUpdated;
+    return isPostUpdated ? isPostUpdated : new NotFoundException();
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post(':id/comments')
+  @Post(':postId/comments')
   async createCommentForPostById(
-    @Param('id', new ParseObjectIdPipe()) id: Types.ObjectId,
+    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
     @Req() req: Request,
+    @Body() { content }: CreateCommentDto,
     @UserId() userId: string,
   ) {
-    const currentPost: PostViewModel | null =
-      await this.postQueryRepository.findPostById(id.toString());
-    if (!currentPost) throw new NotFoundException();
-    if (!userId) throw new Error('user doesn`t exist');
     const currentUser = await this.usersQueryRepository.findUserById(userId);
-    const newCommentData: CommentsInputData = {
-      content: req.body.content,
-      userId: new Types.ObjectId(currentUser!.id),
-      userLogin: currentUser!.login,
-      postId: req.params.postId,
-    };
-
-    const newCommentObjectId: ObjectId =
-      await this.commentsService.createCommentForPost(newCommentData);
+    if (!currentUser) new UnauthorizedException();
+    const newCommentObjectId: ObjectId | null =
+      await this.commentsService.createCommentForPost(
+        postId.toString(),
+        currentUser,
+        content,
+      );
+    if (!newCommentObjectId) return new NotFoundException();
     const newComment = await this.commentQueryRepository.getCommentById(
       newCommentObjectId.toString(),
       new Types.ObjectId(currentUser!.id),
@@ -183,51 +146,42 @@ export class PostController {
     return newComment;
   }
 
-  @Get(':postId')
+  @Get(':postId/comments')
   async getCommentForPostById(
     @QueryData() queryData: queryDataType,
-    @Req() req: Request,
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
     @AccessTokenHeader() accessToken: string,
-  ): Promise<e.Response | PaginatorCommentViewType> {
-    if (!accessToken) throw new UnauthorizedException();
+  ): Promise<PaginatorCommentViewType> {
+    const currentAccessToken = accessToken ? accessToken : null;
 
-    const userId = await this.jwtService.getUserIdByAccessToken(accessToken);
+    const userId =
+      await this.jwtService.getUserIdByAccessToken(currentAccessToken);
 
     const currentPost = await this.postQueryRepository.findPostById(
       postId.toString(),
     );
     if (!currentPost) throw new NotFoundException();
 
-    const comments: PaginatorCommentViewType =
-      await this.commentQueryRepository.getAllCommentsOfPost(
-        postId.toString(),
-        queryData,
-        userId,
-      );
-    return comments;
+    return await this.commentQueryRepository.getAllCommentsOfPost(
+      postId.toString(),
+      queryData,
+      userId,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
   @Put(':postId/like-status')
   @HttpCode(204)
   async updatePostLikeStatus(
-    @Req() req: Request,
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
     @Body() likeStatus: LikeStatusOption,
     @UserId() userId: string,
   ) {
-    const currentUser = await this.usersQueryRepository.findUserById(userId);
-
-    const postInfo = await this.postRepository.getPostById(postId.toString());
-    if (!postInfo) {
-      throw new NotFoundException();
-    }
-    await this.postService.updatePostLikeStatusById(
-      postInfo,
+    const result = await this.postService.updatePostLikeStatusById(
+      postId.toString(),
       likeStatus,
-      currentUser!,
+      userId,
     );
-    return true;
+    return result ? true : new NotFoundException();
   }
 }
