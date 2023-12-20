@@ -38,6 +38,7 @@ export class AuthController {
 
   @Post('/login')
   @UseGuards(LocalAuthGuard)
+  @HttpCode(200)
   async loginUser(
     @Res({ passthrough: true }) res: Response,
     @Headers('User-Agent') userAgent: string | 'unknow',
