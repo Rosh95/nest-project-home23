@@ -4,6 +4,7 @@ import { getUserViewModel, NewUsersDBType } from './user.types';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './user.schema';
 import { Model } from 'mongoose';
+
 @Injectable()
 export class UserRepository {
   constructor(@InjectModel(User.name) public userModel: Model<UserDocument>) {}
@@ -11,14 +12,20 @@ export class UserRepository {
   async getAllUsers() {
     return this.userModel.find().sort({ createdAt: -1 }).lean();
   }
-  async createUser(newUser: NewUsersDBType): Promise<getUserViewModel> {
-    await this.userModel.create(newUser);
-    return this.getUsersMapping(newUser);
+
+  async createUser(newUser: NewUsersDBType): Promise<string | null> {
+    const createdUser = await this.userModel.create(newUser);
+    const result = createdUser._id.toString()
+      ? createdUser._id.toString()
+      : null;
+    return result;
   }
+
   async deleteUser(id: ObjectId): Promise<boolean> {
     const result = await this.userModel.deleteOne({ _id: id });
     return result.deletedCount === 1;
   }
+
   async findUserById(userId: string): Promise<NewUsersDBType | null> {
     const foundUser: NewUsersDBType | null =
       await this.userModel.findById(userId);
@@ -28,6 +35,7 @@ export class UserRepository {
       return null;
     }
   }
+
   async findUserByLogin(login: string): Promise<NewUsersDBType | null> {
     const foundUser = await this.userModel.findOne({
       'accountData.login': login,
@@ -38,6 +46,7 @@ export class UserRepository {
       return null;
     }
   }
+
   async findUserByEmail(email: string): Promise<NewUsersDBType | null> {
     const foundUser = await this.userModel.findOne({
       'accountData.email': email,
@@ -48,6 +57,7 @@ export class UserRepository {
       return null;
     }
   }
+
   async findUserByCode(code: string): Promise<NewUsersDBType | null> {
     const foundUser = await this.userModel.findOne({
       'emailConfirmation.confirmationCode': code,
@@ -58,6 +68,7 @@ export class UserRepository {
       return null;
     }
   }
+
   async findLoginOrEmail(loginOrEmail: string): Promise<NewUsersDBType | null> {
     return this.userModel.findOne({
       $or: [
@@ -66,6 +77,7 @@ export class UserRepository {
       ],
     });
   }
+
   async updateConfirmationCode(
     userId: ObjectId,
     code: string,

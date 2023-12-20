@@ -1,6 +1,5 @@
 import { Injectable, Post } from '@nestjs/common';
 import { CreatePostDto, PostDBModel } from './post.types';
-import { ResultCode, ResultObject } from '../helpers/heplersType';
 import { LikeStatusOption } from '../comments/comments.types';
 import {
   LikeStatus,
@@ -8,9 +7,8 @@ import {
   LikeStatusDocument,
 } from '../likeStatus/likeStatus.type';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { PostDocument } from './post.schema';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class PostRepository {
@@ -27,20 +25,21 @@ export class PostRepository {
     return result.deletedCount === 1;
   }
 
-  async createPost(newPost: PostDBModel): Promise<ResultObject<string>> {
+  async createPost(newPost: PostDBModel): Promise<string> {
     const result = await this.postModel.create(newPost);
-    if (result) {
-      return {
-        data: result._id.toString(),
-        resultCode: ResultCode.NoContent,
-        errorMessage: 'create a new post',
-      };
-    }
-    return {
-      data: null,
-      resultCode: ResultCode.BadRequest,
-      errorMessage: 'couldn`t create a new post',
-    };
+    return result._id.toString();
+    // if (result) {
+    //   return {
+    //     data: result._id.toString(),
+    //     resultCode: ResultCode.NoContent,
+    //     message: 'create a new post',
+    //   };
+    // }
+    // return {
+    //   data: null,
+    //   resultCode: ResultCode.BadRequest,
+    //   message: 'couldn`t create a new post',
+    // };
     // return {
     //     id: result.insertedId.toString(),
     //     title: newPost.title,

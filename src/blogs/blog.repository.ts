@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ObjectId } from 'mongodb';
-import { BlogDbType, BlogInputModel, BlogViewType } from './blogs.types';
+import { BlogDbType, BlogInputModel } from './blogs.types';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Blog, BlogDocument } from './blog.schema';
@@ -13,16 +13,18 @@ export class BlogRepository {
     const result = await this.blogModel.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
   }
-  async createBlog(newBlog: BlogDbType): Promise<BlogViewType> {
+  async createBlog(newBlog: BlogDbType): Promise<string> {
     const result: BlogDocument = await this.blogModel.create(newBlog);
-    return {
-      id: result.id,
-      name: newBlog.name,
-      description: newBlog.description,
-      websiteUrl: newBlog.websiteUrl,
-      createdAt: newBlog.createdAt.toISOString(),
-      isMembership: newBlog.isMembership,
-    };
+
+    return result._id.toString();
+    // return {
+    //   id: result.id,
+    //   name: newBlog.name,
+    //   description: newBlog.description,
+    //   websiteUrl: newBlog.websiteUrl,
+    //   createdAt: newBlog.createdAt.toISOString(),
+    //   isMembership: newBlog.isMembership,
+    // };
   }
   async updateBlog(
     blogId: string,

@@ -1,18 +1,30 @@
-import { Body, Controller, Injectable, Post, Req, Res } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Injectable,
+  Ip,
+  Post,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtService } from '../jwt/jwt.service';
 import { DeviceRepository } from '../devices/device.repository';
 import { AuthService } from './auth.service';
-import { v4 as uuidv4 } from 'uuid';
-import { deviceInputValue } from '../devices/device.types';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { UsersService } from '../users/users.service';
-import {
-  CurrentUserInfoType,
-  getUserViewModel,
-  NewUsersDBType,
-  UserInputType,
-} from '../users/user.types';
+import { CreateUserDto, CurrentUserInfoType } from '../users/user.types';
 import { emailAdapter } from '../email/email.adapter';
+import { Types } from 'mongoose';
+import { Cookies } from './decorators/auth.decorator';
+import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
+import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
+import { LocalAuthGuard } from './guards/local-auth.guard';
+import { emailDto, newPasswordWithRecoveryCodeDto } from './auth.types';
 
 @Injectable()
 @Controller('auth')
@@ -25,187 +37,148 @@ export class AuthController {
   ) {}
 
   @Post('/login')
+  @UseGuards(LocalAuthGuard)
   async loginUser(
-    @Req() req: Request,
-    @Res() res: Response,
-    @Body()
-    { loginOrEmail, password }: { loginOrEmail: string; password: string },
+    @Res({ passthrough: true }) res: Response,
+    @Headers('User-Agent') userAgent: string | 'unknow',
+    @Ip() ip: string,
+    @UserId() userId: string,
   ) {
-    const user = await this.authService.checkCredential(loginOrEmail, password);
-    if (user) {
-      const accessToken = await this.jwtService.createJWT(user);
-      const deviceId = uuidv4();
-      const refreshToken = await this.jwtService.createRefreshJWT(
-        user,
-        deviceId,
-      );
-      const deviceInfo: deviceInputValue = {
-        userId: user._id.toString(),
-        deviceId: deviceId,
-        refreshToken: refreshToken.refreshToken,
-        deviceName: req.headers['user-agent']
-          ? req.headers['user-agent'].toString()
-          : 'unknown',
-        ip: req.ip!,
-      };
-      try {
-        await this.authService.addDeviceInfoToDB(deviceInfo);
-      } catch (e) {
-        return false;
-      }
-      res.cookie('refreshToken', refreshToken.refreshToken, {
+    const tokensInfo = await this.authService.addDeviceInfoToDB(
+      new Types.ObjectId(userId),
+      userAgent,
+      ip,
+    );
+    if (tokensInfo.data === null) return mappingErrorStatus(tokensInfo);
+    res.cookie('refreshToken', tokensInfo.data.refreshToken, {
+      httpOnly: true,
+      secure: true,
+    });
+    res.header('accessToken', tokensInfo.data.accessToken.accessToken);
+    return { accessToken: tokensInfo.data.accessToken };
+  }
+
+  @Post('/refresh-token')
+  async refreshToken(
+    @Res() res: Response,
+    @Headers('User-Agent') userAgent: string | 'unknow',
+    @Ip() ip: string,
+    @Cookies('refreshToken') refreshToken: string,
+  ) {
+    const currentUserInfo =
+      await this.jwtService.getTokenInfoByRefreshToken(refreshToken);
+    if (!currentUserInfo.data) throw new UnauthorizedException();
+    const currentUserId: string = currentUserInfo.data.userId;
+    const currentDeviceId: string = currentUserInfo.data.deviceId;
+    const tokens = await this.authService.addDeviceInfoToDB(
+      new Types.ObjectId(currentUserId),
+      currentDeviceId,
+      ip,
+      currentDeviceId,
+    );
+    return res
+      .cookie('refreshToken', tokens.data.refreshToken, {
         httpOnly: true,
         secure: true,
-      });
-      res.header('accessToken', accessToken.accessToken);
-      return res.status(200).send(accessToken);
-    } else {
-      return res.sendStatus(401);
-    }
+      })
+      .header('accessToken', tokens.data.accessToken)
+      .status(200)
+      .send(tokens.data.accessToken);
   }
 
-  async refreshToken(req: Request, res: Response) {
-    const refreshToken = req.cookies.refreshToken;
-    const currentUserInfo =
-      await this.jwtService.getTokenInfoByRefreshToken(refreshToken);
-    if (!currentUserInfo) return res.sendStatus(401);
-    const currentUserId: string = currentUserInfo.userId;
-    const currentDeviceId: string = currentUserInfo.deviceId;
-    const currentUser = currentUserId
-      ? await this.userService.findUserById(currentUserId.toString())
-      : null;
-    if (currentUser) {
-      const newAccessToken = await this.jwtService.createJWT(currentUser);
-      const newRefreshToken = await this.jwtService.createRefreshJWT(
-        currentUser,
-        currentDeviceId,
-      );
-      const deviceInfo: deviceInputValue = {
-        userId: currentUserId,
-        deviceId: currentDeviceId,
-        refreshToken: newRefreshToken.refreshToken,
-        deviceName: req.headers['user-agent']
-          ? req.headers['user-agent'].toString()
-          : 'unknown',
-        ip: req.ip!,
-      };
-      try {
-        await this.authService.addDeviceInfoToDB(deviceInfo);
-      } catch (e) {
-        return false;
-      }
-      return res
-        .cookie('refreshToken', newRefreshToken.refreshToken, {
-          httpOnly: true,
-          secure: true,
-        })
-        .header('accessToken', newAccessToken.accessToken)
-        .status(200)
-        .send(newAccessToken);
-    }
-    return res.sendStatus(401);
-  }
-
-  async logoutUser(req: Request, res: Response) {
+  @Post('/logout')
+  @HttpCode(204)
+  async logoutUser(
+    @Res() res: Response,
+    @Cookies('refreshToken') refreshToken: string,
+  ) {
     //убрать лишнюю инфу в базе данных ( обнулить дату создания )
-    const refreshToken = req.cookies.refreshToken;
     const currentUserInfo =
       await this.jwtService.getTokenInfoByRefreshToken(refreshToken);
-    if (!currentUserInfo) return res.sendStatus(401);
-    const currentUserId: string = currentUserInfo.userId;
-    const currentDeviceId: string = currentUserInfo.deviceId;
+    if (!currentUserInfo.data) return mappingErrorStatus(currentUserInfo);
+    const currentUserId: string = currentUserInfo.data.userId;
+    const currentDeviceId: string = currentUserInfo.data.deviceId;
     await this.deviceRepository.updateIssuedDate(
       currentUserId,
       currentDeviceId,
     );
-    return res.clearCookie('refreshToken').sendStatus(204);
+    return res.clearCookie('refreshToken');
   }
 
-  async getInfoOfCurrentUser(req: Request, res: Response) {
-    if (!req.headers.authorization) {
-      res.sendStatus(401);
-      return;
-    }
-    const currentUser = req.user as NewUsersDBType;
+  @Get('/me')
+  async getInfoOfCurrentUser(@AccessTokenHeader() accessToken: string) {
+    const userId = await this.jwtService.getUserIdByAccessToken(accessToken);
+    if (!userId) throw new UnauthorizedException();
+    const currentUser = await this.userService.findUserById(userId.toString());
+    if (!currentUser) throw new BadRequestException('couldn`t find user');
     const currentUserInfo: CurrentUserInfoType = {
       login: currentUser.accountData.login,
       email: currentUser.accountData.email,
       userId: currentUser._id.toString(),
     };
-    if (req.user) {
-      return res.status(200).send(currentUserInfo);
-    }
-    return res.sendStatus(404);
+    return currentUserInfo;
   }
 
   @Post('/registration')
-  async registrationUser(@Req() req: Request, @Res() res: Response) {
-    const userPostInputData: UserInputType = {
-      email: req.body.email,
-      login: req.body.login,
-      password: req.body.password,
-    };
-    const newUser: getUserViewModel | null =
-      await this.authService.createUser(userPostInputData);
-    if (newUser) {
-      return res.sendStatus(204);
-    }
-    return res.sendStatus(400);
+  @HttpCode(204)
+  async registrationUser(@Body() createUserDto: CreateUserDto) {
+    const newUser: ResultObject<string> =
+      await this.authService.createUser(createUserDto);
+    if (newUser.data === null) throw new BadRequestException();
+
+    return true;
   }
 
-  async registrationConfirmation(req: Request, res: Response) {
-    const code = req.body.code;
+  @Post('/registration-confirmation')
+  @HttpCode(204)
+  async registrationConfirmation(@Body() code: string) {
     const result = await this.authService.confirmEmail(code);
-    if (result) {
-      return res.sendStatus(204);
-    }
-    return res.sendStatus(400);
+    if (!result.data) return mappingErrorStatus(result);
+    return true;
   }
 
-  async registrationEmailResending(req: Request, res: Response) {
-    const email = req.body.email;
-
-    const currentUser =
+  @Post('/registration-email-resending')
+  @HttpCode(204)
+  async registrationEmailResending(@Body() { email }: emailDto) {
+    const newUserConfirmationCode =
       await this.authService.changeUserConfirmationcode(email);
-    if (currentUser) {
-      try {
-        await emailAdapter.sendConfirmationEmail(
-          currentUser.emailConfirmation.confirmationCode,
-          email,
-        );
-      } catch (e) {
-        return null;
-      }
-      return res.sendStatus(204);
-    }
-    return res.sendStatus(400);
-  }
+    if (newUserConfirmationCode.data === null)
+      return mappingErrorStatus(newUserConfirmationCode);
 
-  async passwordRecovery(req: Request, res: Response) {
-    const email = req.body.email;
-    // let foundUserByEmail = await userService.findUserByEmail(email)
-    // if (!foundUserByEmail) return res.sendStatus(400)
-    const recoveryCode = uuidv4();
-    await this.authService.addRecoveryCodeAndEmail(email, recoveryCode);
     try {
-      await emailAdapter.sendRecoveryPasswordEmail(recoveryCode, email);
-      return res.sendStatus(204);
+      await emailAdapter.sendConfirmationEmail(
+        newUserConfirmationCode.data,
+        email,
+      );
     } catch (e) {
-      return null;
+      throw new BadRequestException();
+    }
+    return true;
+  }
+
+  @Post('/password-recovery')
+  @HttpCode(204)
+  async passwordRecovery(@Body() { email }: emailDto) {
+    const recoveryCode = await this.authService.addRecoveryCodeAndEmail(email);
+    if (recoveryCode.data === null) return mappingErrorStatus(recoveryCode);
+    try {
+      await emailAdapter.sendRecoveryPasswordEmail(recoveryCode.data, email);
+      return true;
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
   }
 
-  async getNewPassword(req: Request, res: Response) {
-    const recoveryCode = req.body.recoveryCode;
-    const newPassword = req.body.newPassword;
-
+  @Post('/new-password')
+  @HttpCode(204)
+  async getNewPassword(
+    @Body() { newPassword, newRecoveryCode }: newPasswordWithRecoveryCodeDto,
+  ) {
     const result = await this.authService.сonfirmAndChangePassword(
-      recoveryCode,
+      newRecoveryCode,
       newPassword,
     );
-    if (result) {
-      return res.sendStatus(204);
-    }
-    return res.sendStatus(400);
+    if (result.data === null) return mappingErrorStatus(result);
+    return true;
   }
 }

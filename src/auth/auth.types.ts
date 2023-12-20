@@ -1,3 +1,5 @@
+import { IsNotEmpty, IsString, Length } from 'class-validator';
+
 export type LoginSuccessViewModel = {
   accessToken: string;
 };
@@ -14,6 +16,36 @@ export type RecoveryCodeDBModel = {
   email: string;
   recoveryCode: string;
 };
+
+export class CreateLoginDto {
+  @IsNotEmpty()
+  @IsString()
+  @Length(1)
+  loginOrEmail: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(1)
+  password: string;
+}
+export class emailDto {
+  @IsNotEmpty()
+  @IsString()
+  @Length(1)
+  email: string;
+}
+
+export class newPasswordWithRecoveryCodeDto {
+  @IsNotEmpty()
+  @IsString()
+  @Length(6, 20)
+  newPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(1)
+  newRecoveryCode: string;
+}
 
 // export const LoginAttemptSchema = new mongoose.Schema<LoginAttemptDBModel>({
 //   ip: { type: String, require: true },

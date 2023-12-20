@@ -6,11 +6,13 @@ import {
   LoginSuccessViewModelForRefresh,
   UserAndDeviceTypeFromRefreshToken,
 } from './jwt.types';
-import { NewUsersDBType } from '../users/user.types';
+import { ResultCode, ResultObject } from '../helpers/heplersType';
 
 export class JwtService {
-  async createJWT(user: NewUsersDBType): Promise<LoginSuccessViewModel> {
-    const token = jwt.sign({ userId: user._id }, settings.JWT_SECRET, {
+  constructor() {}
+
+  async createJWT(userId: ObjectId): Promise<LoginSuccessViewModel> {
+    const token = jwt.sign({ userId: userId }, settings.JWT_SECRET, {
       expiresIn: '600s',
     });
     return {
@@ -19,15 +21,15 @@ export class JwtService {
   }
 
   async createRefreshJWT(
-    user: NewUsersDBType,
+    userId: ObjectId,
     deviceId: string,
   ): Promise<LoginSuccessViewModelForRefresh> {
     const token = jwt.sign(
       {
-        userId: user._id,
+        userId: userId,
         deviceId: deviceId,
       },
-      settings.JWT_REFRESH_SECRET,
+      settings.JWT_SECRET,
       { expiresIn: '1200s' },
     );
     return {
@@ -47,7 +49,7 @@ export class JwtService {
 
   async getUserIdByRefreshToken(token: string): Promise<ObjectId | null> {
     try {
-      const result = jwt.verify(token, settings.JWT_REFRESH_SECRET) as {
+      const result = jwt.verify(token, settings.JWT_SECRET) as {
         userId: string;
       };
 
@@ -59,19 +61,29 @@ export class JwtService {
 
   async getTokenInfoByRefreshToken(
     token: string,
-  ): Promise<UserAndDeviceTypeFromRefreshToken | null> {
-    try {
-      const result = jwt.verify(token, settings.JWT_REFRESH_SECRET) as {
-        userId: string;
-        deviceId: string;
-        iat: number;
-        exp: number;
-      };
-      return result;
-    } catch (error) {
-      return null;
-    }
+  ): Promise<ResultObject<UserAndDeviceTypeFromRefreshToken>> {
+    const result = jwt.verify(token, settings.JWT_SECRET) as {
+      userId: string;
+      deviceId: string;
+      iat: number;
+      exp: number;
+    };
+    // const currentUser = await this.usersQueryRepository.findUserById(
+    //   result.userId,
+    // );
+    //
+    // if (!currentUser) {
+    //   return {
+    //     data: null,
+    //     resultCode: ResultCode.Unauthorized,
+    //     message: 'couldn`t find user',
+    //   };
+    // }
+    return {
+      data: result,
+      resultCode: ResultCode.NoContent,
+    };
   }
 }
 
-export const jwtService = new JwtService();
+//export const jwtService = new JwtService();

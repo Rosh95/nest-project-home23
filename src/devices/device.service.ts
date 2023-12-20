@@ -28,7 +28,7 @@ export class DeviceService {
       return {
         data: null,
         resultCode: ResultCode.NotFound,
-        errorMessage: 'user not found',
+        message: 'user not found',
       };
     }
 
@@ -36,14 +36,14 @@ export class DeviceService {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
-        errorMessage: 'cant delete current device',
+        message: 'cant delete current device',
       };
     }
     if (findUserIdByDeviceId !== currentUserInfo.userId) {
       return {
         data: null,
         resultCode: ResultCode.Forbidden,
-        errorMessage: 'cant delete another device id',
+        message: 'cant delete another device id',
       };
     }
 
@@ -53,14 +53,14 @@ export class DeviceService {
       return {
         data: true,
         resultCode: ResultCode.Success,
-        errorMessage: '',
+        message: '',
       };
     }
 
     return {
       data: null,
       resultCode: ResultCode.ServerError,
-      errorMessage: 'server error',
+      message: 'server error',
     };
   }
 }

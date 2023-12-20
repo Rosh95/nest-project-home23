@@ -1,11 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ObjectId } from 'mongodb';
 import { getUserViewModel } from '../users/user.types';
-import {
-  CommentsDBType,
-  CommentsInputData,
-  LikeStatusOption,
-} from './comments.types';
+import { CommentsDBType, LikeStatusOption } from './comments.types';
 import { LikeStatusModel } from '../db/dbMongo';
 import { CommentsQueryRepository } from './commentsQuery.repository';
 import { CommentsRepository } from './comments.repository';
@@ -14,6 +10,7 @@ import { Types } from 'mongoose';
 import { PostViewModel } from '../posts/post.types';
 import { PostQueryRepository } from '../posts/postQuery.repository';
 import { UsersQueryRepository } from '../users/usersQuery.repository';
+import { ResultCode, ResultObject } from '../helpers/heplersType';
 
 @Injectable()
 export class CommentsService {
@@ -21,7 +18,7 @@ export class CommentsService {
     public commentRepository: CommentsRepository,
     public commentQueryRepository: CommentsQueryRepository,
     public postQueryRepository: PostQueryRepository,
-    public usersRepostory: UsersQueryRepository,
+    public usersRepository: UsersQueryRepository,
   ) {}
 
   // async sendComment(comment: string, id: ObjectId | string) {
@@ -45,28 +42,26 @@ export class CommentsService {
 
   async createCommentForPost(
     postId: string,
-    currentUser: getUserViewModel | null,
+    currentUser: getUserViewModel,
     content: string,
-  ): Promise<ObjectId | null> {
+  ): Promise<ResultObject<string>> {
     const currentPost: PostViewModel | null =
       await this.postQueryRepository.findPostById(postId.toString());
-    if (!currentPost) return null;
-
-    const newCommentData: CommentsInputData = {
-      content: content,
-      userId: new Types.ObjectId(currentUser!.id),
-      userLogin: currentUser!.login,
-      postId: postId.toString(),
-    };
-
+    if (!currentPost) {
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find blog',
+      };
+    }
     const newComment: CommentsDBType = {
       _id: new ObjectId(),
-      content: newCommentData.content,
+      content: content,
       commentatorInfo: {
-        userId: newCommentData.userId.toString(),
-        userLogin: newCommentData.userLogin,
+        userId: new Types.ObjectId(currentUser.id).toString(),
+        userLogin: currentUser.login,
       },
-      postId: newCommentData.postId,
+      postId: postId,
       createdAt: new Date(),
       likesInfo: {
         likesCount: 0,
@@ -74,7 +69,19 @@ export class CommentsService {
         myStatus: LikeStatusOption.None,
       },
     };
-    return this.commentRepository.createCommentForPost(newComment);
+    const resultId = this.commentRepository.createCommentForPost(newComment);
+    if (!resultId) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t comment post',
+      };
+    }
+
+    return {
+      data: resultId.toString(),
+      resultCode: ResultCode.NoContent,
+    };
   }
 
   async updateCommentById(
@@ -99,7 +106,7 @@ export class CommentsService {
     const commentInfo =
       await this.commentQueryRepository.getCommentById(commentId);
     if (!commentInfo) return null;
-    const currentUser = await this.usersRepostory.findUserById(userId);
+    const currentUser = await this.usersRepository.findUserById(userId);
     const findLikeStatusInDB: LikeStatusDBType | null =
       await LikeStatusModel.findOne({
         entityId: commentInfo.id,

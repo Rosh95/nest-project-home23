@@ -18,6 +18,7 @@ import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
 import { Types } from 'mongoose';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { QueryData } from '../helpers/decorators/helpers.decorator.queryData';
+import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
 
 @Injectable()
 @Controller('users')
@@ -41,7 +42,10 @@ export class UsersController {
   ) {
     const user: getUserViewModel | null =
       await this.usersQueryRepository.findUserById(userId.toString());
-    return user ? user : new NotFoundException();
+    if (user) {
+      return user;
+    }
+    throw new NotFoundException();
   }
 
   @UseGuards(BasicAuthGuard)
@@ -51,14 +55,23 @@ export class UsersController {
     @Param('userId', new ParseObjectIdPipe()) userId: Types.ObjectId,
   ) {
     const result = await this.userService.deleteUser(userId.toString());
-    return result ? result : new NotFoundException();
+    if (result.data == null) {
+      return mappingErrorStatus(result);
+    }
+    return true;
   }
 
   @UseGuards(BasicAuthGuard)
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
-    const newUser: getUserViewModel | null =
+    const newUser: ResultObject<string> =
       await this.userService.createUser(createUserDto);
-    return newUser;
+    if (newUser.data === null) {
+      return mappingErrorStatus(newUser);
+    }
+    const newUserInfo = await this.usersQueryRepository.findUserById(
+      newUser.data,
+    );
+    return newUserInfo;
   }
 }

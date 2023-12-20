@@ -2,11 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { UserRepository } from './user.repository';
 import { ObjectId } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
-import { CreateUserDto, getUserViewModel, NewUsersDBType } from './user.types';
+import { CreateUserDto, NewUsersDBType } from './user.types';
 import bcrypt from 'bcrypt';
 import add from 'date-fns/add';
 import { Types } from 'mongoose';
 import { Helpers } from '../helpers/helpers';
+import { ResultCode, ResultObject } from '../helpers/heplersType';
 
 @Injectable()
 export class UsersService {
@@ -17,7 +18,7 @@ export class UsersService {
 
   async createUser(
     userPostInputData: CreateUserDto,
-  ): Promise<getUserViewModel | null> {
+  ): Promise<ResultObject<string>> {
     await this.helpers.validateOrRejectModel(userPostInputData, CreateUserDto);
     const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this._generateHash(
@@ -43,7 +44,18 @@ export class UsersService {
         isConfirmed: true,
       },
     };
-    return await this.userRepository.createUser(newUser);
+    const createUserId = await this.userRepository.createUser(newUser);
+    if (!createUserId) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t create user',
+      };
+    }
+    return {
+      data: createUserId,
+      resultCode: ResultCode.NoContent,
+    };
   }
 
   async changeUserConfirmationcode(
@@ -65,11 +77,28 @@ export class UsersService {
     return await this.userRepository.findUserByEmail(email);
   }
 
-  async deleteUser(userId: string): Promise<boolean | null> {
+  async deleteUser(userId: string): Promise<ResultObject<string>> {
     const isExistUser = await this.userRepository.findUserById(userId);
-    if (!isExistUser) return null;
+    if (!isExistUser) {
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find user',
+      };
+    }
     const idInMongo = new Types.ObjectId(userId);
-    return await this.userRepository.deleteUser(idInMongo);
+    const deleteUser = await this.userRepository.deleteUser(idInMongo);
+    if (!deleteUser) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t delete user',
+      };
+    }
+    return {
+      data: 'ok',
+      resultCode: ResultCode.NoContent,
+    };
   }
 
   async checkCredential(loginOrEmail: string, password: string) {

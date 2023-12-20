@@ -13,7 +13,7 @@ import { JwtService } from '../jwt/jwt.service';
 import { DeviceQueryRepository } from './deviceQuery.repository';
 import { DeviceService } from './device.service';
 import { Request, Response } from 'express';
-import { ResultCode } from '../helpers/heplersType';
+import { mappingErrorStatus, ResultCode } from '../helpers/heplersType';
 
 @Injectable()
 @Controller('devices')
@@ -49,22 +49,18 @@ export class DeviceController {
     const refreshToken = req.cookies.refreshToken;
     const currentUserInfo =
       await this.jwtService.getTokenInfoByRefreshToken(refreshToken);
-    if (currentUserInfo) {
-      const currentDeviceId = currentUserInfo.deviceId;
-      const currentUserId = currentUserInfo.userId;
-      try {
-        const isDeleted: boolean =
-          await this.deviceService.deleteOtherUserDevice(
-            currentUserId,
-            currentDeviceId,
-          );
-        if (isDeleted) {
-          return true;
-        }
-        throw new NotFoundException();
-      } catch (e) {
-        throw new NotFoundException();
+    if (currentUserInfo.data) {
+      const currentDeviceId = currentUserInfo.data.deviceId;
+      const currentUserId = currentUserInfo.data.userId;
+
+      const isDeleted: boolean = await this.deviceService.deleteOtherUserDevice(
+        currentUserId,
+        currentDeviceId,
+      );
+      if (isDeleted) {
+        return true;
       }
+      throw new NotFoundException();
     }
     throw new NotFoundException();
   }
@@ -82,16 +78,16 @@ export class DeviceController {
     const refreshToken = req.cookies.refreshToken;
     const currentUserInfo =
       await this.jwtService.getTokenInfoByRefreshToken(refreshToken);
-    if (!currentUserInfo) {
-      throw new NotFoundException();
-    }
+    if (currentUserInfo.data === null)
+      return mappingErrorStatus(currentUserInfo);
+
     const result = await this.deviceService.deleteUserDeviceById(
-      currentUserInfo,
+      currentUserInfo.data,
       req.params.deviceId,
     );
     if (result.resultCode !== ResultCode.Success) {
       const returnStatus = mapStatus(result.resultCode);
-      return res.status(returnStatus).send(result.errorMessage);
+      return res.status(returnStatus).send(result.message);
     }
     return true;
   }
@@ -101,7 +97,7 @@ const mapStatus = (resultCode: ResultCode) => {
   switch (resultCode) {
     case ResultCode.BadRequest:
       return 400;
-    case ResultCode.DeviceNotFound:
+    case ResultCode.NoContent:
       return 404;
     case ResultCode.Forbidden:
       return 403;

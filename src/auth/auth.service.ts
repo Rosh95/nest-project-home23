@@ -7,26 +7,30 @@ import bcrypt from 'bcrypt';
 import { UserRepository } from '../users/user.repository';
 import { Injectable } from '@nestjs/common';
 import {
-  getUserViewModel,
   NewUsersDBType,
   UserInputType,
   UserViewModel,
 } from '../users/user.types';
 import { AuthRepository } from './auth.repository';
-import { DeviceDBModel, deviceInputValue } from '../devices/device.types';
-import { jwtService } from '../jwt/jwt.service';
+import { DeviceDBModel } from '../devices/device.types';
+import { JwtService } from '../jwt/jwt.service';
 import { emailAdapter } from '../email/email.adapter';
+import { ResultCode, ResultObject } from '../helpers/heplersType';
+import { Types } from 'mongoose';
+import { UsersQueryRepository } from '../users/usersQuery.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
     public userRepository: UserRepository,
     public authRepository: AuthRepository,
+    public jwtService: JwtService,
+    public usersQueryRepository: UsersQueryRepository,
   ) {}
 
   async createUser(
     userPostInputData: UserInputType,
-  ): Promise<getUserViewModel | null> {
+  ): Promise<ResultObject<string>> {
     const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this._generateHash(
       userPostInputData.password,
@@ -51,17 +55,33 @@ export class AuthService {
         isConfirmed: false,
       },
     };
-    const createdUser = await this.userRepository.createUser(newUser);
+    const createdUserId = await this.userRepository.createUser(newUser);
+    if (!createdUserId) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t create user',
+      };
+    }
+    const createdUser =
+      await this.usersQueryRepository.findUserById(createdUserId);
     const createdUserFullInformation = this.usersMapping(newUser);
     try {
       await emailAdapter.sendConfirmationEmail(
         createdUserFullInformation.emailConfirmation.confirmationCode,
-        createdUser.email,
+        createdUser!.email,
       );
     } catch (e) {
-      return null;
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t send email' + e.message,
+      };
     }
-    return createdUser;
+    return {
+      data: createdUserId,
+      resultCode: ResultCode.NoContent,
+    };
   }
 
   async deleteUser(id: string): Promise<boolean> {
@@ -77,7 +97,7 @@ export class AuthService {
       user.accountData.passwordSalt,
     );
     if (user.accountData.passwordHash === passwordHash) {
-      return user;
+      return user._id;
     } else return false;
   }
 
@@ -119,20 +139,58 @@ export class AuthService {
     return await bcrypt.hash(password, salt);
   }
 
-  async confirmEmail(code: string): Promise<boolean> {
+  async confirmEmail(code: string): Promise<ResultObject<string>> {
     const findUser = await this.userRepository.findUserByCode(code);
-    if (!findUser) return false;
-
-    return await this.authRepository.updateEmailConfimation(findUser._id);
+    if (!findUser) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t find user by code',
+      };
+    }
+    if (+findUser.emailConfirmation.emailExpiration > Date.now()) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'confirmation code is Expired',
+      };
+    }
+    if (findUser.emailConfirmation.isConfirmed) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'confirmation code is already confirmed',
+      };
+    }
+    const isUpdated = await this.authRepository.updateEmailConfimation(
+      findUser._id,
+    );
+    if (!isUpdated) {
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t update confirmation code ',
+      };
+    }
+    return {
+      data: 'ok',
+      resultCode: ResultCode.NoContent,
+    };
   }
 
   async сonfirmAndChangePassword(
     recoveryCode: string,
     password: string,
-  ): Promise<boolean> {
+  ): Promise<ResultObject<string>> {
     const foundEmailByRecoveryCode =
       await this.authRepository.findEmailByRecoveryCode(recoveryCode);
-    if (!foundEmailByRecoveryCode) return false;
+    if (!foundEmailByRecoveryCode) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t find user be recovery code',
+      };
+    }
     const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this._generateHash(password, passwordSalt);
     await this.authRepository.updateUserPassword(
@@ -140,13 +198,22 @@ export class AuthService {
       passwordHash,
       passwordSalt,
     );
-    return true;
+    return {
+      data: 'ok',
+      resultCode: ResultCode.NoContent,
+    };
   }
 
-  async addRecoveryCodeAndEmail(
-    email: string,
-    recoveryCode: string,
-  ): Promise<ObjectId | null> {
+  async addRecoveryCodeAndEmail(email: string): Promise<ResultObject<string>> {
+    const recoveryCode = uuidv4();
+    const foundUserByEmail = await this.userRepository.findUserByEmail(email);
+    if (!foundUserByEmail) {
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find user',
+      };
+    }
     const isExistRecoveryCodeForCurrentEmail = await RecoveryCodeModel.findOne({
       email,
     });
@@ -162,41 +229,115 @@ export class AuthService {
         recoveryCode,
       );
     }
-    return result ? result._id : null;
+    return result
+      ? {
+          data: recoveryCode,
+          resultCode: ResultCode.NotFound,
+          message: 'couldn`t find user',
+        }
+      : {
+          data: null,
+          resultCode: ResultCode.BadRequest,
+          message: 'couldn`t send recovery code',
+        };
   }
 
   async changeUserConfirmationcode(
     email: string,
-  ): Promise<NewUsersDBType | null> {
+  ): Promise<ResultObject<string>> {
     const currentUser = await this.findUserByEmail(email);
-    const newConfirmationCode = uuidv4();
-    if (currentUser) {
-      try {
-        await this.userRepository.updateConfirmationCode(
-          currentUser._id,
-          newConfirmationCode,
-        );
-      } catch (e) {
-        console.log(e);
-        return null;
-      }
+
+    if (!currentUser) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'user doesn`t exist',
+      };
     }
-    return await this.userRepository.findUserByEmail(email);
+
+    if (currentUser?.emailConfirmation.isConfirmed) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'user already confirmed',
+      };
+    }
+    const newConfirmationCode = uuidv4();
+
+    try {
+      await this.userRepository.updateConfirmationCode(
+        currentUser._id,
+        newConfirmationCode,
+      );
+    } catch (e) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'user some error on resending email' + e.message,
+      };
+    }
+    const updatedUserInfo = await this.userRepository.findUserByEmail(email);
+    if (!updatedUserInfo) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'user some error on resending email',
+      };
+    }
+    return {
+      data: updatedUserInfo.emailConfirmation.confirmationCode,
+      resultCode: ResultCode.NoContent,
+    };
   }
 
-  async addDeviceInfoToDB(deviceInfo: deviceInputValue): Promise<boolean> {
-    const getInfoFromRefreshToken = await jwtService.getTokenInfoByRefreshToken(
-      deviceInfo.refreshToken,
+  async addDeviceInfoToDB(
+    userId: Types.ObjectId,
+    userAgent: string,
+    ip: string,
+    deviceId?: string,
+  ): Promise<ResultObject<any>> {
+    const accessToken = await this.jwtService.createJWT(userId);
+    const currentDeviceId = deviceId ? deviceId : uuidv4();
+    const refreshToken = await this.jwtService.createRefreshJWT(
+      userId,
+      currentDeviceId,
     );
-    if (!getInfoFromRefreshToken) return false;
+
+    const getInfoFromRefreshToken =
+      await this.jwtService.getTokenInfoByRefreshToken(
+        refreshToken.refreshToken,
+      );
+
+    if (!getInfoFromRefreshToken.data) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t get refreshToken',
+      };
+    }
     const result: DeviceDBModel = {
-      userId: deviceInfo.userId,
-      issuedAt: getInfoFromRefreshToken.iat,
-      expirationAt: getInfoFromRefreshToken.exp,
-      deviceId: deviceInfo.deviceId,
-      ip: deviceInfo.ip,
-      deviceName: deviceInfo.deviceName,
+      userId: userId.toString(),
+      issuedAt: getInfoFromRefreshToken.data.iat,
+      expirationAt: getInfoFromRefreshToken.data.exp,
+      deviceId: currentDeviceId,
+      ip: ip,
+      deviceName: userAgent,
     };
-    return await this.authRepository.createOrUpdateRefreshToken(result);
+    const isCreated =
+      await this.authRepository.createOrUpdateRefreshToken(result);
+    if (!isCreated) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t get refreshToken',
+      };
+    }
+    return {
+      data: {
+        accessToken: accessToken.accessToken,
+        refreshToken: refreshToken.refreshToken,
+      },
+      resultCode: ResultCode.Success,
+    };
   }
 }

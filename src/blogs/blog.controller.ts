@@ -25,7 +25,7 @@ import {
   PaginatorPostViewType,
   PostViewModel,
 } from '../posts/post.types';
-import { ResultObject } from '../helpers/heplersType';
+import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
 import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
 import { Types } from 'mongoose';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
@@ -56,7 +56,12 @@ export class BlogController {
   ) {
     const foundBlog: BlogViewType | null =
       await this.blogQueryRepository.findBlogById(blogId.toString());
-    return foundBlog ? foundBlog : new NotFoundException();
+    if (foundBlog) {
+      return foundBlog;
+    }
+    throw new NotFoundException({
+      message: { error: 'couldn`t find' },
+    });
   }
 
   @UseGuards(BasicAuthGuard)
@@ -66,27 +71,37 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
   ) {
     const result = await this.blogService.deleteBlog(blogId.toString());
-    return result ? result : new NotFoundException();
+    if (result) {
+      return true;
+    }
+    mappingErrorStatus(result);
   }
 
   @Post()
   async createBlog(@Body() inputData: CreateBlogDto) {
-    const newBlog: BlogViewType = await this.blogService.createBlog(inputData);
-    return newBlog;
+    const createBlogInfo: ResultObject<string> =
+      await this.blogService.createBlog(inputData);
+    if (createBlogInfo.data) {
+      return await this.blogQueryRepository.findBlogById(createBlogInfo.data);
+    }
+    mappingErrorStatus(createBlogInfo);
   }
 
   @UseGuards(BasicAuthGuard)
-  @Put(':id')
+  @Put(':blogId')
   @HttpCode(204)
   async updateBlog(
-    @Param('id', new ParseObjectIdPipe()) id: Types.ObjectId,
+    @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @Body() createBlogDto: CreateBlogDto,
   ) {
-    const isBlogUpdate: boolean | null = await this.blogService.updateBlog(
-      id.toString(),
+    const updateBlog: ResultObject<string> = await this.blogService.updateBlog(
+      blogId.toString(),
       createBlogDto,
     );
-    return isBlogUpdate ? isBlogUpdate : new NotFoundException();
+    if (updateBlog.data === null) {
+      mappingErrorStatus(updateBlog);
+    }
+    return true;
   }
 
   @Get(':blogId/posts')
@@ -105,7 +120,10 @@ export class BlogController {
         queryData,
         userId,
       );
-    return foundPosts ? foundPosts : null;
+    if (foundPosts === null) {
+      throw new NotFoundException();
+    }
+    return foundPosts;
   }
 
   @UseGuards(BasicAuthGuard)
@@ -117,12 +135,14 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @Body() createPostDto: CreatePostDto,
   ) {
-    const newPost: ResultObject<string> | null =
+    const newPost: ResultObject<string> =
       await this.postService.createPostForExistingBlog(
         blogId.toString(),
         createPostDto,
       );
-    if (!newPost) return new NotFoundException();
+    if (newPost.data === null) {
+      return mappingErrorStatus(newPost);
+    }
     const gotNewPost: PostViewModel | null = newPost.data
       ? await this.postQueryRepository.findPostById(newPost.data)
       : null;

@@ -13,6 +13,7 @@ export class BlogQueryRepository {
     @InjectModel(Blog.name) public blogModel: Model<BlogDocument>,
     @InjectModel(Post.name) public postModel: Model<PostDocument>,
   ) {}
+
   async getAllBlogs(
     queryData: queryDataType,
   ): Promise<newPaginatorViewType<BlogViewType>> {
@@ -41,6 +42,7 @@ export class BlogQueryRepository {
       items: blogViewArray,
     };
   }
+
   private async blogMapping(blog: BlogDbType): Promise<BlogViewType> {
     const blogMongoId = blog._id.toString();
 
@@ -63,11 +65,27 @@ export class BlogQueryRepository {
       blogsPagesCount,
     };
   }
+
   async findBlogById(id: string): Promise<BlogViewType | null> {
     const foundBlog: BlogDbType | null = await this.blogModel.findOne({
       _id: new ObjectId(id),
     });
-    return foundBlog ? this.blogMapping(foundBlog) : null;
+    if (foundBlog) {
+      return await this.blogMapping(foundBlog);
+    }
+    return null;
+    // if (foundBlog) {
+    //   const result: ResultObject<BlogViewType> = {
+    //     data: await this.blogMapping(foundBlog),
+    //     resultCode: ResultCode.Created,
+    //   };
+    //   return result;
+    // }
+    // const errorInfo: ResultObject<BlogViewType> = {
+    //   data: null,
+    //   resultCode: ResultCode.BadRequest,
+    // };
+    // return errorInfo;
   }
 
   // async getAllPostOfBlog(

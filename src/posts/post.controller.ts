@@ -23,8 +23,7 @@ import {
 } from './post.types';
 import { Request } from 'express';
 import { Helpers, queryDataType } from '../helpers/helpers';
-import { ObjectId } from 'mongodb';
-import { ResultObject } from '../helpers/heplersType';
+import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
 import { JwtService } from '../jwt/jwt.service';
 import {
   LikeStatusOption,
@@ -56,7 +55,6 @@ export class PostController {
   @Get()
   async getPosts(
     @QueryData() queryData: queryDataType,
-    @Req() req: Request,
     @AccessTokenHeader() accessToken: string,
   ): Promise<PaginatorPostViewType | boolean> {
     const currentAccessToken = accessToken ? accessToken : null;
@@ -68,7 +66,6 @@ export class PostController {
   @Get(':postId')
   async getPostById(
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
-    @Req() req: Request,
     @AccessTokenHeader() accessToken: string,
   ): Promise<PostViewModel | NotFoundException | null> {
     const currentAccessToken = accessToken ? accessToken : null;
@@ -76,8 +73,8 @@ export class PostController {
       await this.jwtService.getUserIdByAccessToken(currentAccessToken);
     const foundPost: PostViewModel | null =
       await this.postQueryRepository.findPostById(postId.toString(), userId);
-    if (!foundPost) return new NotFoundException();
-    return foundPost ? foundPost : null;
+    if (foundPost === null) return new NotFoundException();
+    return foundPost;
   }
 
   @UseGuards(BasicAuthGuard)
@@ -86,25 +83,28 @@ export class PostController {
   async deletePostById(
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
   ): Promise<any> {
-    const isDeleted: boolean | null = await this.postService.deletePost(
+    const isDeleted: ResultObject<string> = await this.postService.deletePost(
       postId.toString(),
     );
-    if (!isDeleted) throw new NotFoundException();
+    if (isDeleted.data === null) return mappingErrorStatus(isDeleted);
     return true;
   }
 
   @UseGuards(BasicAuthGuard)
   @Post()
+  @HttpCode(201)
   async createPost(
     @Body() createPostDto: CreatePostDto,
     @Body() blogId: string,
   ) {
-    const newPost: ResultObject<string> | null =
-      await this.postService.createPost(createPostDto, blogId);
-    if (!newPost) return new NotFoundException();
-    const gotNewPost: PostViewModel | null = newPost.data
-      ? await this.postQueryRepository.findPostById(newPost.data)
-      : null;
+    const newPost: ResultObject<string> = await this.postService.createPost(
+      createPostDto,
+      blogId,
+    );
+    if (newPost.data === null) return mappingErrorStatus(newPost);
+    const gotNewPost: PostViewModel | null =
+      await this.postQueryRepository.findPostById(newPost.data);
+
     return gotNewPost;
   }
 
@@ -115,11 +115,11 @@ export class PostController {
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
     @Body() createPostDto: CreatePostDto,
   ) {
-    const isPostUpdated: boolean | null = await this.postService.updatePost(
-      postId.toString(),
-      createPostDto,
-    );
-    return isPostUpdated ? isPostUpdated : new NotFoundException();
+    const PostUpdatedInfo: ResultObject<string> =
+      await this.postService.updatePost(postId.toString(), createPostDto);
+    if (PostUpdatedInfo.data === null)
+      return mappingErrorStatus(PostUpdatedInfo);
+    return true;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -132,15 +132,17 @@ export class PostController {
   ) {
     const currentUser = await this.usersQueryRepository.findUserById(userId);
     if (!currentUser) new UnauthorizedException();
-    const newCommentObjectId: ObjectId | null =
+    const newCommentObjectId: ResultObject<string> =
       await this.commentsService.createCommentForPost(
         postId.toString(),
-        currentUser,
+        currentUser!,
         content,
       );
-    if (!newCommentObjectId) return new NotFoundException();
+    if (newCommentObjectId.data === null)
+      return mappingErrorStatus(newCommentObjectId);
+
     const newComment = await this.commentQueryRepository.getCommentById(
-      newCommentObjectId.toString(),
+      newCommentObjectId.data,
       new Types.ObjectId(currentUser!.id),
     );
     return newComment;
@@ -182,6 +184,7 @@ export class PostController {
       likeStatus,
       userId,
     );
-    return result ? true : new NotFoundException();
+    if (result.data === null) return mappingErrorStatus(result);
+    return true;
   }
 }

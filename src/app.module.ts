@@ -53,6 +53,8 @@ import { JwtStrategy } from './auth/strategies/jwt.strategy';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { JwtModule } from '@nestjs/jwt';
 import { settings } from './settings';
+import { LocalAuthGuard } from './auth/guards/local-auth.guard';
+import { LocalStrategy } from './auth/strategies/local.strategy';
 
 @Module({
   imports: [
@@ -113,6 +115,8 @@ import { settings } from './settings';
     BasicAuthGuard,
     JwtStrategy,
     JwtAuthGuard,
+    LocalAuthGuard,
+    LocalStrategy,
   ],
 })
 export class AppModule {}

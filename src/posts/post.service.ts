@@ -4,8 +4,8 @@ import { PostQueryRepository } from './postQuery.repository';
 import { BlogViewType } from '../blogs/blogs.types';
 import { ObjectId } from 'mongodb';
 import { BlogQueryRepository } from '../blogs/blogQuery.repository';
-import { CreatePostDto, PostDBModel, postInputDataModel } from './post.types';
-import { ResultObject } from '../helpers/heplersType';
+import { CreatePostDto, PostDBModel } from './post.types';
+import { ResultCode, ResultObject } from '../helpers/heplersType';
 import { LikeStatusOption } from '../comments/comments.types';
 import { LikeStatusDBType } from '../likeStatus/likeStatus.type';
 import { LikeStatusModel } from '../db/dbMongo';
@@ -23,46 +23,82 @@ export class PostService {
     public usersQueryRepository: UsersQueryRepository,
   ) {}
 
-  async deletePost(postId: string): Promise<boolean | null> {
+  async deletePost(postId: string): Promise<ResultObject<string>> {
     const isExistPost = await this.postQueryRepository.findPostById(postId);
-    if (!isExistPost) return null;
-    return await this.postRepository.deletePost(postId);
+    if (!isExistPost) {
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find blog',
+      };
+    }
+    const isDeleted = await this.postRepository.deletePost(postId);
+    if (!isDeleted) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t delete post',
+      };
+    }
+    return {
+      data: 'ok',
+      resultCode: ResultCode.NoContent,
+    };
   }
 
   async createPost(
     createPostDto: CreatePostDto,
     blogId: string,
-  ): Promise<ResultObject<string> | null> {
+  ): Promise<ResultObject<string>> {
     await this.helpers.validateOrRejectModel(createPostDto, CreatePostDto);
 
     const foundBlog: BlogViewType | null =
       await this.blogQueryRepository.findBlogById(blogId);
-    if (!foundBlog) return null;
-    const postInputData: postInputDataModel = {
+    if (!foundBlog) {
+      const error: ResultObject<string> = {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t find this blog',
+      };
+      return error;
+    }
+    const newPost: PostDBModel = {
+      _id: new ObjectId(),
       title: createPostDto.title,
       shortDescription: createPostDto.shortDescription,
       content: createPostDto.content,
       blogId: blogId,
-    };
-
-    const newPost: PostDBModel = {
-      _id: new ObjectId(),
-      title: postInputData.title,
-      shortDescription: postInputData.shortDescription,
-      content: postInputData.content,
-      blogId: postInputData.blogId,
       blogName: foundBlog.name,
       createdAt: new Date(),
     };
-    return await this.postRepository.createPost(newPost);
+    const createdPostId = await this.postRepository.createPost(newPost);
+    if (createdPostId) {
+      const result: ResultObject<string> = {
+        data: createdPostId,
+        resultCode: ResultCode.Created,
+      };
+
+      return result;
+    }
+    return {
+      data: null,
+      resultCode: ResultCode.BadRequest,
+      message: 'couldn`t create a new post',
+    };
   }
 
   async createPostForExistingBlog(
     blogId: string,
     postInputData: CreatePostDto,
-  ): Promise<ResultObject<string> | null> {
+  ): Promise<ResultObject<string>> {
     const foundBlog = await this.blogQueryRepository.findBlogById(blogId);
-    if (!foundBlog) return null;
+    if (!foundBlog) {
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find blog',
+      };
+    }
     await this.helpers.validateOrRejectModel(postInputData, CreatePostDto);
 
     const newPost: PostDBModel = {
@@ -71,33 +107,70 @@ export class PostService {
       shortDescription: postInputData.shortDescription,
       content: postInputData.content,
       blogId: blogId,
-      blogName: foundBlog!.name,
+      blogName: foundBlog.name,
       createdAt: new Date(),
     };
-    return await this.postRepository.createPost(newPost);
+    const createdPostId = await this.postRepository.createPost(newPost);
+    return {
+      data: createdPostId,
+      resultCode: ResultCode.Created,
+    };
   }
 
   async updatePost(
     postId: string,
     updatedPostData: CreatePostDto,
-  ): Promise<boolean | null> {
+  ): Promise<ResultObject<string>> {
     await this.helpers.validateOrRejectModel(updatedPostData, CreatePostDto);
 
     const isExistPost = await this.postQueryRepository.findPostById(
       postId.toString(),
     );
-    if (!isExistPost) return null;
-    return await this.postRepository.updatePost(postId, updatedPostData);
+    if (!isExistPost) {
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find blog',
+      };
+    }
+    const updatedPost = await this.postRepository.updatePost(
+      postId,
+      updatedPostData,
+    );
+    if (!updatedPost) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        message: 'couldn`t update blog',
+      };
+    }
+    return {
+      data: 'ok',
+      resultCode: ResultCode.NoContent,
+    };
   }
 
   async updatePostLikeStatusById(
     postId: string,
     newLikeStatusForComment: LikeStatusOption,
     userId: string,
-  ) {
+  ): Promise<ResultObject<string>> {
     const postInfo = await this.postRepository.getPostById(postId.toString());
-    if (!postInfo) return null;
+    if (!postInfo) {
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find post',
+      };
+    }
     const currentUser = await this.usersQueryRepository.findUserById(userId);
+    if (!currentUser) {
+      return {
+        data: null,
+        resultCode: ResultCode.Unauthorized,
+        message: 'couldn`t find User',
+      };
+    }
 
     const findPostLikeStatusInDB: LikeStatusDBType | null =
       await LikeStatusModel.findOne({
@@ -112,7 +185,10 @@ export class PostService {
         currentUser!.login,
         newLikeStatusForComment,
       );
-      return true;
+      return {
+        data: 'ok',
+        resultCode: ResultCode.NoContent,
+      };
     }
     await this.postRepository.updatePostLikeStatus(
       postInfo._id,
@@ -120,6 +196,9 @@ export class PostService {
       newLikeStatusForComment,
     );
 
-    return true;
+    return {
+      data: 'ok',
+      resultCode: ResultCode.NoContent,
+    };
   }
 }
