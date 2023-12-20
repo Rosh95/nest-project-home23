@@ -1,4 +1,4 @@
-import { Injectable, Post } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreatePostDto, PostDBModel } from './post.types';
 import { LikeStatusOption } from '../comments/comments.types';
 import {
@@ -8,7 +8,7 @@ import {
 } from '../likeStatus/likeStatus.type';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { PostDocument } from './post.schema';
+import { Post, PostDocument } from './post.schema';
 
 @Injectable()
 export class PostRepository {

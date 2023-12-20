@@ -1,4 +1,4 @@
-import { Module, Post } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersController } from './users/users.controller';
@@ -42,7 +42,7 @@ import {
   RecoveryCodeSchema,
 } from './auth/auth.schema';
 import { Comment, CommentsSchema } from './comments/comment.schema';
-import { PostSchema } from './posts/post.schema';
+import { PostSchema, Post } from './posts/post.schema';
 import { User, UsersSchema } from './users/user.schema';
 import { TestingController } from './testingDelete/testing.controller';
 import { TestingService } from './testingDelete/testing.service';
