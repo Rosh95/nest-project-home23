@@ -1,11 +1,11 @@
-import { Injectable, Post } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ObjectId } from 'mongodb';
 import { BlogDbType, BlogViewType } from './blogs.types';
 import { newPaginatorViewType, queryDataType } from '../helpers/helpers';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Blog, BlogDocument } from './blog.schema';
-import { PostDocument } from '../posts/post.schema';
+import { Post, PostDocument } from '../posts/post.schema';
 
 @Injectable()
 export class BlogQueryRepository {
