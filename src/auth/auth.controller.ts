@@ -21,7 +21,11 @@ import { CreateUserDto, CurrentUserInfoType } from '../users/user.types';
 import { emailAdapter } from '../email/email.adapter';
 import { Types } from 'mongoose';
 import { Cookies } from './decorators/auth.decorator';
-import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
+import {
+  mappingBadRequest,
+  mappingErrorStatus,
+  ResultObject,
+} from '../helpers/heplersType';
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { emailDto, newPasswordWithRecoveryCodeDto } from './auth.types';
@@ -125,7 +129,7 @@ export class AuthController {
   async registrationUser(@Body() createUserDto: CreateUserDto) {
     const newUser: ResultObject<string> =
       await this.authService.createUser(createUserDto);
-    if (newUser.data === null) throw new BadRequestException();
+    if (newUser.data === null) return mappingErrorStatus(newUser);
 
     return true;
   }
@@ -133,6 +137,7 @@ export class AuthController {
   @Post('/registration-confirmation')
   @HttpCode(204)
   async registrationConfirmation(@Body() code: string) {
+    if (!code) mappingBadRequest('code doesn`t exist', 'code');
     const result = await this.authService.confirmEmail(code);
     if (!result.data) return mappingErrorStatus(result);
     return true;
@@ -152,7 +157,7 @@ export class AuthController {
         email,
       );
     } catch (e) {
-      throw new BadRequestException();
+      mappingBadRequest('some error', 'code');
     }
     return true;
   }

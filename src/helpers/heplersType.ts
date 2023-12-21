@@ -37,6 +37,7 @@ export type ResultObject<T> = {
   data: T | null;
   resultCode: ResultCode;
   message?: string;
+  field?: string;
 };
 // change on class
 // export class ResultObject2<T> {
@@ -45,29 +46,36 @@ export type ResultObject<T> = {
 //   message?: string;
 //   constructor() {}
 // }
+
+export const mappingBadRequest = (errorMessage: string, field: string) => {
+  throw new BadRequestException({
+    message: [{ message: errorMessage, field: field }],
+  });
+};
 export const mappingErrorStatus = (resultObject: ResultObject<any>) => {
   const statusCode = resultObject.resultCode;
   const textError = resultObject.message || 'no message';
+  const field = resultObject.field || 'some field';
   switch (statusCode) {
     case ResultCode.BadRequest:
       throw new BadRequestException({
-        message: [{ message: textError, status: statusCode }],
+        message: [{ message: textError, field: field }],
       });
     case ResultCode.Unauthorized:
       throw new UnauthorizedException({
-        message: [{ message: textError, status: statusCode }],
+        message: [{ message: textError, field: field }],
       });
     case ResultCode.Forbidden:
       throw new ForbiddenException({
-        message: [{ message: textError, status: statusCode }],
+        message: [{ message: textError, field: field }],
       });
     case ResultCode.NotFound:
       throw new NotFoundException({
-        message: [{ message: textError, status: statusCode }],
+        message: [{ message: textError, field: field }],
       });
     case ResultCode.ServerError:
       throw new InternalServerErrorException({
-        message: [{ message: textError, status: statusCode }],
+        message: [{ message: textError, field: field }],
       });
     default:
       return 418;

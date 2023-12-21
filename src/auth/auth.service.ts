@@ -31,6 +31,29 @@ export class AuthService {
   async createUser(
     userPostInputData: UserInputType,
   ): Promise<ResultObject<string>> {
+    const isExistEmail = await this.userRepository.findLoginOrEmail(
+      userPostInputData.email,
+    );
+    const isExistLogin = await this.userRepository.findLoginOrEmail(
+      userPostInputData.login,
+    );
+    if (!isExistEmail) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        field: 'email',
+        message: 'email is exist',
+      };
+    }
+    if (!isExistLogin) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        field: 'email',
+        message: 'login is exist',
+      };
+    }
+
     const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this._generateHash(
       userPostInputData.password,
@@ -251,14 +274,16 @@ export class AuthService {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
+        field: 'code',
         message: 'user doesn`t exist',
       };
     }
 
-    if (currentUser?.emailConfirmation.isConfirmed) {
+    if (currentUser.emailConfirmation.isConfirmed) {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
+        field: 'email',
         message: 'user already confirmed',
       };
     }
@@ -273,6 +298,7 @@ export class AuthService {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
+        field: 'code',
         message: 'user some error on resending email' + e.message,
       };
     }
@@ -281,6 +307,7 @@ export class AuthService {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
+        field: 'code',
         message: 'user some error on resending email',
       };
     }
