@@ -137,7 +137,8 @@ export class AuthController {
   @Post('/registration-confirmation')
   @HttpCode(204)
   async registrationConfirmation(@Body() code: string) {
-    if (!code) mappingBadRequest('code doesn`t exist', 'code');
+    if (!code || code.toString().length === 0)
+      mappingBadRequest('code doesn`t exist', 'code');
     const result = await this.authService.confirmEmail(code);
     if (!result.data) return mappingErrorStatus(result);
     return true;

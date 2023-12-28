@@ -274,7 +274,7 @@ export class AuthService {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
-        field: 'code',
+        field: 'email',
         message: 'user doesn`t exist',
       };
     }
