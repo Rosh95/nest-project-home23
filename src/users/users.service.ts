@@ -37,10 +37,7 @@ export class UsersService {
       },
       emailConfirmation: {
         confirmationCode: uuidv4(),
-        emailExpiration: add(new Date(), {
-          hours: 1,
-          minutes: 3,
-        }),
+        emailExpiration: add(new Date(), { hours: 2, minutes: 3 }),
         isConfirmed: true,
       },
     };

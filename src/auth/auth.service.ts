@@ -172,7 +172,12 @@ export class AuthService {
         field: 'code',
       };
     }
-    if (+findUser.emailConfirmation.emailExpiration > Date.now()) {
+    if (
+      findUser.emailConfirmation.emailExpiration.getTime() <
+      new Date().getTime()
+    ) {
+      console.log(findUser.emailConfirmation.emailExpiration.getTime());
+      console.log(new Date().getTime());
       return {
         data: null,
         resultCode: ResultCode.BadRequest,

@@ -4,6 +4,7 @@ import { getUserViewModel, NewUsersDBType } from './user.types';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './user.schema';
 import { Model } from 'mongoose';
+import add from 'date-fns/add';
 
 @Injectable()
 export class UserRepository {
@@ -87,6 +88,10 @@ export class UserRepository {
       {
         $set: {
           'emailConfirmation.confirmationCode': code,
+          'emailConfirmation.emailExpiration': add(new Date(), {
+            hours: 2,
+            minutes: 3,
+          }),
         },
       },
       { new: true },
