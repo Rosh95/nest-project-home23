@@ -49,7 +49,6 @@ export class BlogController {
     return await this.blogQueryRepository.getAllBlogs(queryData);
   }
 
-  @UseGuards(BasicAuthGuard)
   @Get(':blogId')
   async getBlogById(
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
@@ -77,6 +76,7 @@ export class BlogController {
     mappingErrorStatus(result);
   }
 
+  @UseGuards(BasicAuthGuard)
   @Post()
   async createBlog(@Body() inputData: CreateBlogDto) {
     const createBlogInfo: ResultObject<string> =
