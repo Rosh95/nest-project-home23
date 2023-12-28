@@ -37,7 +37,7 @@ export class AuthService {
     const isExistLogin = await this.userRepository.findLoginOrEmail(
       userPostInputData.login,
     );
-    if (!isExistEmail) {
+    if (isExistEmail) {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
@@ -45,11 +45,11 @@ export class AuthService {
         message: 'email is exist',
       };
     }
-    if (!isExistLogin) {
+    if (isExistLogin) {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
-        field: 'email',
+        field: 'login',
         message: 'login is exist',
       };
     }
@@ -169,6 +169,7 @@ export class AuthService {
         data: null,
         resultCode: ResultCode.BadRequest,
         message: 'couldn`t find user by code',
+        field: 'code',
       };
     }
     if (+findUser.emailConfirmation.emailExpiration > Date.now()) {
@@ -176,6 +177,7 @@ export class AuthService {
         data: null,
         resultCode: ResultCode.BadRequest,
         message: 'confirmation code is Expired',
+        field: 'code',
       };
     }
     if (findUser.emailConfirmation.isConfirmed) {
@@ -183,6 +185,7 @@ export class AuthService {
         data: null,
         resultCode: ResultCode.BadRequest,
         message: 'confirmation code is already confirmed',
+        field: 'code',
       };
     }
     const isUpdated = await this.authRepository.updateEmailConfimation(
@@ -193,6 +196,7 @@ export class AuthService {
         data: null,
         resultCode: ResultCode.NotFound,
         message: 'couldn`t update confirmation code ',
+        field: 'code',
       };
     }
     return {

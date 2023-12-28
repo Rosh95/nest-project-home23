@@ -62,7 +62,6 @@ export class UserRepository {
     const foundUser = await this.userModel.findOne({
       'emailConfirmation.confirmationCode': code,
     });
-    debugger;
     if (foundUser) {
       return foundUser;
     } else {
