@@ -2,15 +2,19 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ObjectId } from 'mongodb';
 import { getUserViewModel } from '../users/user.types';
 import { CommentsDBType, LikeStatusOption } from './comments.types';
-import { LikeStatusModel } from '../db/dbMongo';
 import { CommentsQueryRepository } from './commentsQuery.repository';
 import { CommentsRepository } from './comments.repository';
-import { LikeStatusDBType } from '../likeStatus/likeStatus.type';
-import { Types } from 'mongoose';
+import {
+  LikeStatus,
+  LikeStatusDBType,
+  LikeStatusDocument,
+} from '../likeStatus/likeStatus.type';
+import { Model, Types } from 'mongoose';
 import { PostViewModel } from '../posts/post.types';
 import { PostQueryRepository } from '../posts/postQuery.repository';
 import { UsersQueryRepository } from '../users/usersQuery.repository';
 import { ResultCode, ResultObject } from '../helpers/heplersType';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class CommentsService {
@@ -19,6 +23,8 @@ export class CommentsService {
     public commentQueryRepository: CommentsQueryRepository,
     public postQueryRepository: PostQueryRepository,
     public usersRepository: UsersQueryRepository,
+    @InjectModel(LikeStatus.name)
+    public likeStatusModel: Model<LikeStatusDocument>,
   ) {}
 
   // async sendComment(comment: string, id: ObjectId | string) {
@@ -108,7 +114,7 @@ export class CommentsService {
     if (!commentInfo) return null;
     const currentUser = await this.usersRepository.findUserById(userId);
     const findLikeStatusInDB: LikeStatusDBType | null =
-      await LikeStatusModel.findOne({
+      await this.likeStatusModel.findOne({
         entityId: commentInfo.id,
         userId: userId,
       });

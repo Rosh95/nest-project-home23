@@ -6,6 +6,7 @@ import {
   Matches,
 } from 'class-validator';
 import { Types } from 'mongoose';
+import { Transform, TransformFnParams } from 'class-transformer';
 
 isNotEmpty;
 export type BlogPostInputModel = {
@@ -50,17 +51,20 @@ export type PaginatorBlogViewType = {
 export class CreateBlogDto {
   @IsNotEmpty()
   @IsString()
+  @Transform(({ value }: TransformFnParams) => value?.trim())
   @Length(1, 15)
   name: string;
 
   @IsNotEmpty()
   @IsString()
+  @Transform(({ value }: TransformFnParams) => value?.trim())
   @Length(1, 500)
   description: string;
 
   @IsNotEmpty()
   @IsString()
   @Length(1, 100)
+  @Transform(({ value }: TransformFnParams) => value?.trim())
   @Matches(
     '^https://([a-zA-Z0-9_-]+\\.)+[a-zA-Z0-9_-]+(\\/[a-zA-Z0-9_-]+)*\\/?$',
   )

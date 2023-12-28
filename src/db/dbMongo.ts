@@ -3,11 +3,6 @@ import { BlogDbType } from '../blogs/blogs.types';
 import { PostDBModel } from '../posts/post.types';
 import { NewUsersDBType } from '../users/user.types';
 import { CommentsDBType } from '../comments/comments.types';
-import {
-  LikeStatus,
-  LikeStatusDBType,
-  LikeStatusSchema,
-} from '../likeStatus/likeStatus.type';
 import { Device, DeviceDBModel, DeviceSchema } from '../devices/device.types';
 import { LoginAttemptDBModel, RecoveryCodeDBModel } from '../auth/auth.types';
 import { Blog, BlogSchema } from '../blogs/blog.schema';
@@ -43,7 +38,7 @@ export const RecoveryCodeModel = mongoose.model<RecoveryCodeDBModel>(
   RecoveryCode.name,
   RecoveryCodeSchema,
 );
-export const LikeStatusModel = mongoose.model<LikeStatusDBType>(
-  LikeStatus.name,
-  LikeStatusSchema,
-);
+// export const LikeStatusModel = mongoose.model<LikeStatusDBType>(
+//   LikeStatus.name,
+//   LikeStatusSchema,
+// );

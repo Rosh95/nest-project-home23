@@ -7,11 +7,15 @@ import { BlogQueryRepository } from '../blogs/blogQuery.repository';
 import { CreatePostDto, PostDBModel } from './post.types';
 import { ResultCode, ResultObject } from '../helpers/heplersType';
 import { LikeStatusOption } from '../comments/comments.types';
-import { LikeStatusDBType } from '../likeStatus/likeStatus.type';
-import { LikeStatusModel } from '../db/dbMongo';
-import { Types } from 'mongoose';
+import {
+  LikeStatus,
+  LikeStatusDBType,
+  LikeStatusDocument,
+} from '../likeStatus/likeStatus.type';
+import { Model, Types } from 'mongoose';
 import { Helpers } from '../helpers/helpers';
 import { UsersQueryRepository } from '../users/usersQuery.repository';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class PostService {
@@ -21,6 +25,8 @@ export class PostService {
     public blogQueryRepository: BlogQueryRepository,
     public helpers: Helpers,
     public usersQueryRepository: UsersQueryRepository,
+    @InjectModel(LikeStatus.name)
+    public likeStatusModel: Model<LikeStatusDocument>,
   ) {}
 
   async deletePost(postId: string): Promise<ResultObject<string>> {
@@ -173,7 +179,7 @@ export class PostService {
     }
 
     const findPostLikeStatusInDB: LikeStatusDBType | null =
-      await LikeStatusModel.findOne({
+      await this.likeStatusModel.findOne({
         entityId: postInfo._id,
         userId: new Types.ObjectId(currentUser!.id),
       });

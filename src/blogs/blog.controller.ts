@@ -70,10 +70,8 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
   ) {
     const result = await this.blogService.deleteBlog(blogId.toString());
-    if (result) {
-      return true;
-    }
-    mappingErrorStatus(result);
+    if (result.data === null) return mappingErrorStatus(result);
+    return true;
   }
 
   @UseGuards(BasicAuthGuard)
@@ -81,10 +79,8 @@ export class BlogController {
   async createBlog(@Body() inputData: CreateBlogDto) {
     const createBlogInfo: ResultObject<string> =
       await this.blogService.createBlog(inputData);
-    if (createBlogInfo.data) {
-      return await this.blogQueryRepository.findBlogById(createBlogInfo.data);
-    }
-    mappingErrorStatus(createBlogInfo);
+    if (createBlogInfo.data === null) return mappingErrorStatus(createBlogInfo);
+    return await this.blogQueryRepository.findBlogById(createBlogInfo.data);
   }
 
   @UseGuards(BasicAuthGuard)

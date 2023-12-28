@@ -22,6 +22,7 @@ export class BlogService {
         data: null,
         resultCode: ResultCode.BadRequest,
         message: 'couldn`t find blog',
+        field: 'blog',
       };
     }
     const deleteBlog = await this.blogRepository.deleteBlog(blogId);

@@ -26,7 +26,7 @@ import { Helpers, queryDataType } from '../helpers/helpers';
 import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
 import { JwtService } from '../jwt/jwt.service';
 import {
-  LikeStatusOption,
+  LikeStatusOptionVariable,
   PaginatorCommentViewType,
 } from '../comments/comments.types';
 import { CommentsService } from '../comments/comments.service';
@@ -95,7 +95,7 @@ export class PostController {
   @HttpCode(201)
   async createPost(
     @Body() createPostDto: CreatePostDto,
-    @Body() blogId: string,
+    @Body('blogId') blogId: string,
   ) {
     const newPost: ResultObject<string> = await this.postService.createPost(
       createPostDto,
@@ -108,7 +108,7 @@ export class PostController {
     return gotNewPost;
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(BasicAuthGuard)
   @Put(':postId')
   @HttpCode(204)
   async updatePost(
@@ -176,7 +176,7 @@ export class PostController {
   @HttpCode(204)
   async updatePostLikeStatus(
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
-    @Body() likeStatus: LikeStatusOption,
+    @Body() { likeStatus }: LikeStatusOptionVariable,
     @UserId() userId: string,
   ) {
     const result = await this.postService.updatePostLikeStatusById(
@@ -184,6 +184,7 @@ export class PostController {
       likeStatus,
       userId,
     );
+    console.log('user!!!!!' + userId);
     if (result.data === null) return mappingErrorStatus(result);
     return true;
   }
