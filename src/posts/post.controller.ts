@@ -23,7 +23,11 @@ import {
 } from './post.types';
 import { Request } from 'express';
 import { Helpers, queryDataType } from '../helpers/helpers';
-import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
+import {
+  mappingErrorStatus,
+  ResultCode,
+  ResultObject,
+} from '../helpers/heplersType';
 import { JwtService } from '../jwt/jwt.service';
 import {
   LikeStatusOptionVariable,
@@ -38,6 +42,8 @@ import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { QueryData } from '../helpers/decorators/helpers.decorator.queryData';
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
 import { UsersQueryRepository } from '../users/usersQuery.repository';
+import { CommandBus } from '@nestjs/cqrs';
+import { CreateCommentForPostCommand } from '../comments/application/use-cases/CreateCommentForPost';
 
 @Injectable()
 @Controller('posts')
@@ -50,6 +56,7 @@ export class PostController {
     public helpers: Helpers,
     public jwtService: JwtService,
     public usersQueryRepository: UsersQueryRepository,
+    private commandBus: CommandBus,
   ) {}
 
   @Get()
@@ -67,13 +74,18 @@ export class PostController {
   async getPostById(
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
     @AccessTokenHeader() accessToken: string,
-  ): Promise<PostViewModel | NotFoundException | null> {
+  ): Promise<PostViewModel | NotFoundException | null | number> {
     const currentAccessToken = accessToken ? accessToken : null;
     const userId =
       await this.jwtService.getUserIdByAccessToken(currentAccessToken);
     const foundPost: PostViewModel | null =
       await this.postQueryRepository.findPostById(postId.toString(), userId);
-    if (foundPost === null) return new NotFoundException();
+    if (foundPost === null)
+      return mappingErrorStatus({
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find post',
+      });
     return foundPost;
   }
 
@@ -83,6 +95,7 @@ export class PostController {
   async deletePostById(
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
   ): Promise<any> {
+    //if (!postId) new NotFoundException();
     const isDeleted: ResultObject<string> = await this.postService.deletePost(
       postId.toString(),
     );
@@ -115,6 +128,7 @@ export class PostController {
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
     @Body() createPostDto: CreatePostDto,
   ) {
+    if (!postId) new NotFoundException();
     const PostUpdatedInfo: ResultObject<string> =
       await this.postService.updatePost(postId.toString(), createPostDto);
     if (PostUpdatedInfo.data === null)
@@ -133,19 +147,20 @@ export class PostController {
     const currentUser = await this.usersQueryRepository.findUserById(userId);
     if (!currentUser) new UnauthorizedException();
     const newCommentObjectId: ResultObject<string> =
-      await this.commentsService.createCommentForPost(
-        postId.toString(),
-        currentUser!,
-        content,
+      await this.commandBus.execute(
+        new CreateCommentForPostCommand(
+          postId.toString(),
+          currentUser!,
+          content,
+        ),
       );
     if (newCommentObjectId.data === null)
       return mappingErrorStatus(newCommentObjectId);
 
-    const newComment = await this.commentQueryRepository.getCommentById(
+    return await this.commentQueryRepository.getCommentById(
       newCommentObjectId.data,
       new Types.ObjectId(currentUser!.id),
     );
-    return newComment;
   }
 
   @Get(':postId/comments')

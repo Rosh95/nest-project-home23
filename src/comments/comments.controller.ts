@@ -11,22 +11,24 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
-import { CommentsRepository } from './comments.repository';
 import { CommentsQueryRepository } from './commentsQuery.repository';
 import { JwtService } from '../jwt/jwt.service';
 import { CommentsViewModel, LikeStatusOption } from './comments.types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
 import { CreateCommentDto } from '../posts/post.types';
+import { CommandBus } from '@nestjs/cqrs';
+import { DeleteCommentByIdCommand } from './application/use-cases/deleteCommentById';
+import { UpdateCommentByIdCommand } from './application/use-cases/updateCommentById';
 
 @Injectable()
 @Controller('comments')
 export class CommentsController {
   constructor(
     public commentsService: CommentsService,
-    public commentRepository: CommentsRepository,
     public commentQueryRepository: CommentsQueryRepository,
     public jwtService: JwtService,
+    private commandBus: CommandBus,
   ) {}
 
   @Get(':commentId')
@@ -48,7 +50,10 @@ export class CommentsController {
   @Delete(':commentId')
   @HttpCode(204)
   async deleteCommentById(@Param('commentId') commentId: string) {
-    const isDeleted = await this.commentsService.deleteCommentById(commentId);
+    // const isDeleted = await this.commentsService.deleteCommentById(commentId);
+    const isDeleted = await this.commandBus.execute(
+      new DeleteCommentByIdCommand(commentId),
+    );
     return isDeleted ? isDeleted : new NotFoundException();
   }
 
@@ -60,10 +65,8 @@ export class CommentsController {
     @Body() { content }: CreateCommentDto,
     @UserId() userId: string,
   ) {
-    const updatedComment = await this.commentsService.updateCommentById(
-      commentId,
-      content,
-      userId,
+    const updatedComment = await this.commandBus.execute(
+      new UpdateCommentByIdCommand(commentId, content, userId),
     );
     return updatedComment ? true : new NotFoundException();
   }

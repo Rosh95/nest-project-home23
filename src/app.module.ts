@@ -42,7 +42,7 @@ import {
   RecoveryCodeSchema,
 } from './auth/auth.schema';
 import { Comment, CommentsSchema } from './comments/comment.schema';
-import { PostSchema, Post } from './posts/post.schema';
+import { Post, PostSchema } from './posts/post.schema';
 import { User, UsersSchema } from './users/user.schema';
 import { TestingController } from './testingDelete/testing.controller';
 import { TestingService } from './testingDelete/testing.service';
@@ -55,9 +55,47 @@ import { JwtModule } from '@nestjs/jwt';
 import { settings } from './settings';
 import { LocalAuthGuard } from './auth/guards/local-auth.guard';
 import { LocalStrategy } from './auth/strategies/local.strategy';
+import { CqrsModule } from '@nestjs/cqrs';
+import { CreateCommentForPost } from './comments/application/use-cases/CreateCommentForPost';
+import { DeleteCommentById } from './comments/application/use-cases/deleteCommentById';
+import { UpdateCommentById } from './comments/application/use-cases/updateCommentById';
 
+const providers = [
+  AppService,
+  UsersService,
+  UserRepository,
+  UsersQueryRepository,
+  CatsRepository,
+  AuthRepository,
+  AuthService,
+  BlogRepository,
+  BlogQueryRepository,
+  BlogService,
+  CommentsService,
+  CommentsRepository,
+  CommentsQueryRepository,
+  DeviceQueryRepository,
+  DeviceService,
+  DeviceRepository,
+  PostService,
+  PostQueryRepository,
+  PostRepository,
+  JwtService,
+  Helpers,
+  TestingService,
+  TestingRepository,
+  ConfigService,
+  BasicStrategy,
+  BasicAuthGuard,
+  JwtStrategy,
+  JwtAuthGuard,
+  LocalAuthGuard,
+  LocalStrategy,
+];
+const useCases = [CreateCommentForPost, DeleteCommentById, UpdateCommentById];
 @Module({
   imports: [
+    CqrsModule,
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(getMongoUri()),
     JwtModule.register({
@@ -86,37 +124,6 @@ import { LocalStrategy } from './auth/strategies/local.strategy';
     DeviceController,
     TestingController,
   ],
-  providers: [
-    AppService,
-    UsersService,
-    UserRepository,
-    UsersQueryRepository,
-    CatsRepository,
-    AuthRepository,
-    AuthService,
-    BlogRepository,
-    BlogQueryRepository,
-    BlogService,
-    CommentsService,
-    CommentsRepository,
-    CommentsQueryRepository,
-    DeviceQueryRepository,
-    DeviceService,
-    DeviceRepository,
-    PostService,
-    PostQueryRepository,
-    PostRepository,
-    JwtService,
-    Helpers,
-    TestingService,
-    TestingRepository,
-    ConfigService,
-    BasicStrategy,
-    BasicAuthGuard,
-    JwtStrategy,
-    JwtAuthGuard,
-    LocalAuthGuard,
-    LocalStrategy,
-  ],
+  providers: [...providers, ...useCases],
 })
 export class AppModule {}

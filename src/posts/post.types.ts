@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { LikeStatusOption } from '../comments/comments.types';
 import { IsNotEmpty, IsString, Length } from 'class-validator';
+import { Transform, TransformFnParams } from 'class-transformer';
 
 export type PostLikesUsersModel = {
   addedAt: string;
@@ -69,16 +70,19 @@ export type PaginatorPostViewType = {
 export class CreatePostDto {
   @IsNotEmpty()
   @IsString()
+  @Transform(({ value }: TransformFnParams) => value?.trim())
   @Length(1, 30)
   title: string;
 
   @IsNotEmpty()
   @IsString()
+  @Transform(({ value }: TransformFnParams) => value?.trim())
   @Length(1, 100)
   shortDescription: string;
 
   @IsNotEmpty()
   @IsString()
+  @Transform(({ value }: TransformFnParams) => value?.trim())
   @Length(1, 1000)
   content: string;
 }

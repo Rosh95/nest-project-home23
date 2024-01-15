@@ -16,11 +16,10 @@ export class BlogService {
 
   async deleteBlog(blogId: string): Promise<ResultObject<string>> {
     const isExistBlog = await this.blogQueryRepository.findBlogById(blogId);
-
     if (!isExistBlog) {
       return {
         data: null,
-        resultCode: ResultCode.BadRequest,
+        resultCode: ResultCode.NotFound,
         message: 'couldn`t find blog',
         field: 'blog',
       };

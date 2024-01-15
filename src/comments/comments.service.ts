@@ -1,7 +1,5 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { ObjectId } from 'mongodb';
-import { getUserViewModel } from '../users/user.types';
-import { CommentsDBType, LikeStatusOption } from './comments.types';
+import { Injectable } from '@nestjs/common';
+import { LikeStatusOption } from './comments.types';
 import { CommentsQueryRepository } from './commentsQuery.repository';
 import { CommentsRepository } from './comments.repository';
 import {
@@ -10,10 +8,8 @@ import {
   LikeStatusDocument,
 } from '../likeStatus/likeStatus.type';
 import { Model, Types } from 'mongoose';
-import { PostViewModel } from '../posts/post.types';
 import { PostQueryRepository } from '../posts/postQuery.repository';
 import { UsersQueryRepository } from '../users/usersQuery.repository';
-import { ResultCode, ResultObject } from '../helpers/heplersType';
 import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
@@ -39,70 +35,70 @@ export class CommentsService {
     return this.commentRepository.getCommentById(commentId);
   }
 
-  async deleteCommentById(commentId: string) {
-    const commentInfo =
-      await this.commentQueryRepository.getCommentById(commentId);
-    if (!commentInfo) return null;
-    return await this.commentRepository.deleteCommentById(commentId);
-  }
+  // async deleteCommentById(commentId: string) {
+  //   const commentInfo =
+  //     await this.commentQueryRepository.getCommentById(commentId);
+  //   if (!commentInfo) return null;
+  //   return await this.commentRepository.deleteCommentById(commentId);
+  // }
 
-  async createCommentForPost(
-    postId: string,
-    currentUser: getUserViewModel,
-    content: string,
-  ): Promise<ResultObject<string>> {
-    const currentPost: PostViewModel | null =
-      await this.postQueryRepository.findPostById(postId.toString());
-    if (!currentPost) {
-      return {
-        data: null,
-        resultCode: ResultCode.NotFound,
-        message: 'couldn`t find blog',
-      };
-    }
-    const newComment: CommentsDBType = {
-      _id: new ObjectId(),
-      content: content,
-      commentatorInfo: {
-        userId: new Types.ObjectId(currentUser.id).toString(),
-        userLogin: currentUser.login,
-      },
-      postId: postId,
-      createdAt: new Date(),
-      likesInfo: {
-        likesCount: 0,
-        dislikesCount: 0,
-        myStatus: LikeStatusOption.None,
-      },
-    };
-    const resultId = this.commentRepository.createCommentForPost(newComment);
-    if (!resultId) {
-      return {
-        data: null,
-        resultCode: ResultCode.BadRequest,
-        message: 'couldn`t comment post',
-      };
-    }
+  // async createCommentForPost(
+  //   postId: string,
+  //   currentUser: getUserViewModel,
+  //   content: string,
+  // ): Promise<ResultObject<string>> {
+  //   const currentPost: PostViewModel | null =
+  //     await this.postQueryRepository.findPostById(postId.toString());
+  //   if (!currentPost) {
+  //     return {
+  //       data: null,
+  //       resultCode: ResultCode.NotFound,
+  //       message: 'couldn`t find blog',
+  //     };
+  //   }
+  //   const newComment: CommentsDBType = {
+  //     _id: new ObjectId(),
+  //     content: content,
+  //     commentatorInfo: {
+  //       userId: new Types.ObjectId(currentUser.id).toString(),
+  //       userLogin: currentUser.login,
+  //     },
+  //     postId: postId,
+  //     createdAt: new Date(),
+  //     likesInfo: {
+  //       likesCount: 0,
+  //       dislikesCount: 0,
+  //       myStatus: LikeStatusOption.None,
+  //     },
+  //   };
+  //   const resultId = this.commentRepository.createCommentForPost(newComment);
+  //   if (!resultId) {
+  //     return {
+  //       data: null,
+  //       resultCode: ResultCode.BadRequest,
+  //       message: 'couldn`t comment post',
+  //     };
+  //   }
+  //
+  //   return {
+  //     data: resultId.toString(),
+  //     resultCode: ResultCode.NoContent,
+  //   };
+  // }
 
-    return {
-      data: resultId.toString(),
-      resultCode: ResultCode.NoContent,
-    };
-  }
-
-  async updateCommentById(
-    commentId: string,
-    commentContent: string,
-    userId: string,
-  ) {
-    const commentInfo =
-      await this.commentQueryRepository.getCommentById(commentId);
-    if (!commentInfo) return null;
-    if (commentInfo?.commentatorInfo.userId !== userId) {
-      throw new ForbiddenException();
-    }
-    return this.commentRepository.updatedCommentById(commentId, commentContent);
-  }
+  // async updateCommentById(
+  //   commentId: string,
+  //   commentContent: string,
+  //   userId: string,
+  // ) {
+  //   const commentInfo =
+  //     await this.commentQueryRepository.getCommentById(commentId);
+  //   if (!commentInfo) return null;
+  //   if (commentInfo?.commentatorInfo.userId !== userId) {
+  //     throw new ForbiddenException();
+  //   }
+  //   return this.commentRepository.updatedCommentById(commentId, commentContent);
+  // }
 
   async updateCommentLikeStatusById(
     commentId: string,

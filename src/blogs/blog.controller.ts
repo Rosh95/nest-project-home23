@@ -53,6 +53,7 @@ export class BlogController {
   async getBlogById(
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
   ) {
+    // if (!blogId) throw new NotFoundException();
     const foundBlog: BlogViewType | null =
       await this.blogQueryRepository.findBlogById(blogId.toString());
     if (foundBlog) {
@@ -70,6 +71,7 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
   ) {
     const result = await this.blogService.deleteBlog(blogId.toString());
+    console.log(mappingErrorStatus(result));
     if (result.data === null) return mappingErrorStatus(result);
     return true;
   }
@@ -107,6 +109,7 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @AccessTokenHeader() accessToken: string,
   ) {
+    if (!blogId) throw new NotFoundException();
     const currentAccessToken = accessToken ? accessToken : null;
     const userId =
       await this.jwtService.getUserIdByAccessToken(currentAccessToken);
@@ -131,6 +134,7 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @Body() createPostDto: CreatePostDto,
   ) {
+    if (!blogId) throw new NotFoundException();
     const newPost: ResultObject<string> =
       await this.postService.createPostForExistingBlog(
         blogId.toString(),

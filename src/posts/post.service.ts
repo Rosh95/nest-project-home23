@@ -30,12 +30,20 @@ export class PostService {
   ) {}
 
   async deletePost(postId: string): Promise<ResultObject<string>> {
+    if (!postId) {
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find blog',
+      };
+    }
+
     const isExistPost = await this.postQueryRepository.findPostById(postId);
     if (!isExistPost) {
       return {
         data: null,
         resultCode: ResultCode.NotFound,
-        message: 'couldn`t find blog',
+        message: 'couldn`t find post',
       };
     }
     const isDeleted = await this.postRepository.deletePost(postId);
