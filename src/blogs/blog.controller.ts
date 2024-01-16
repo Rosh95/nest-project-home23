@@ -109,7 +109,6 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @AccessTokenHeader() accessToken: string,
   ) {
-    if (!blogId) throw new NotFoundException();
     const currentAccessToken = accessToken ? accessToken : null;
     const userId =
       await this.jwtService.getUserIdByAccessToken(currentAccessToken);
@@ -134,7 +133,6 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @Body() createPostDto: CreatePostDto,
   ) {
-    if (!blogId) throw new NotFoundException();
     const newPost: ResultObject<string> =
       await this.postService.createPostForExistingBlog(
         blogId.toString(),

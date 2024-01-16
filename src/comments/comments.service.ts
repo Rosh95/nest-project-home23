@@ -11,6 +11,7 @@ import { Model, Types } from 'mongoose';
 import { PostQueryRepository } from '../posts/postQuery.repository';
 import { UsersQueryRepository } from '../users/usersQuery.repository';
 import { InjectModel } from '@nestjs/mongoose';
+import { ResultCode, ResultObject } from '../helpers/heplersType';
 
 @Injectable()
 export class CommentsService {
@@ -104,10 +105,15 @@ export class CommentsService {
     commentId: string,
     newLikeStatusForComment: LikeStatusOption,
     userId: string,
-  ) {
+  ): Promise<ResultObject<string>> {
     const commentInfo =
       await this.commentQueryRepository.getCommentById(commentId);
-    if (!commentInfo) return null;
+    if (!commentInfo)
+      return {
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message: 'couldn`t find comment',
+      };
     const currentUser = await this.usersRepository.findUserById(userId);
     const findLikeStatusInDB: LikeStatusDBType | null =
       await this.likeStatusModel.findOne({
@@ -122,7 +128,10 @@ export class CommentsService {
         currentUser!.login,
         newLikeStatusForComment,
       );
-      return true;
+      return {
+        data: 'ok',
+        resultCode: ResultCode.NoContent,
+      };
     }
     await this.commentRepository.updateLikeStatus(
       new Types.ObjectId(commentInfo.id),
@@ -132,7 +141,10 @@ export class CommentsService {
 
     //findLikeStatusInDB.likeStatus = newLikeStatusForComment;
 
-    return true;
+    return {
+      data: 'ok',
+      resultCode: ResultCode.NoContent,
+    };
     // return commentRepository.updatedCommentLikeStatusById(commentInfo._id.toString(), newLikeStatusForComment)
   }
 }

@@ -34,17 +34,3 @@ export class UpdateCommentById
     );
   }
 }
-
-// async updateCommentById(
-//   commentId: string,
-//   commentContent: string,
-//   userId: string,
-// ) {
-//   const commentInfo =
-//     await this.commentQueryRepository.getCommentById(commentId);
-//   if (!commentInfo) return null;
-//   if (commentInfo?.commentatorInfo.userId !== userId) {
-//     throw new ForbiddenException();
-//   }
-//   return this.commentRepository.updatedCommentById(commentId, commentContent);
-// }

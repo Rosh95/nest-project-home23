@@ -52,7 +52,8 @@ export class CreateCommentForPost
         myStatus: LikeStatusOption.None,
       },
     };
-    const resultId = this.commentRepository.createCommentForPost(newComment);
+    const resultId =
+      await this.commentRepository.createCommentForPost(newComment);
     if (!resultId) {
       return {
         data: null,

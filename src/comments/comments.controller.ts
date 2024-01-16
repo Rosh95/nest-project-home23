@@ -20,6 +20,7 @@ import { CreateCommentDto } from '../posts/post.types';
 import { CommandBus } from '@nestjs/cqrs';
 import { DeleteCommentByIdCommand } from './application/use-cases/deleteCommentById';
 import { UpdateCommentByIdCommand } from './application/use-cases/updateCommentById';
+import { mappingErrorStatus } from '../helpers/heplersType';
 
 @Injectable()
 @Controller('comments')
@@ -84,6 +85,7 @@ export class CommentsController {
       likeStatus,
       userId,
     );
-    return result ? true : new NotFoundException();
+    if (result.data === null) return mappingErrorStatus(result);
+    return true;
   }
 }
