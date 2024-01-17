@@ -14,6 +14,11 @@ import { DeviceQueryRepository } from './deviceQuery.repository';
 import { DeviceService } from './device.service';
 import { Request, Response } from 'express';
 import { mappingErrorStatus, ResultCode } from '../helpers/heplersType';
+import { CommandBus } from '@nestjs/cqrs';
+import { DeleteOtherUserDeviceCommand } from './application/use-cases/DeleteOtherUserDevice';
+import { DeleteUserDeviceByIdCommand } from './application/use-cases/DeleteUserDeviceById';
+import { GetUserIdByRefreshTokenCommand } from '../jwt/application/use-cases/GetUserIdByRefreshToken';
+import { GetTokenInfoByRefreshTokenCommand } from '../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 
 @Injectable()
 @Controller('devices')
@@ -22,13 +27,15 @@ export class DeviceController {
     public deviceService: DeviceService,
     public deviceQueryRepository: DeviceQueryRepository,
     public jwtService: JwtService,
+    private commandBus: CommandBus,
   ) {}
 
   @Get()
   async getDevices(@Req() req: Request) {
     const refreshToken = req.cookies.refreshToken;
-    const currentUserId =
-      await this.jwtService.getUserIdByRefreshToken(refreshToken);
+    const currentUserId = await this.commandBus.execute(
+      new GetUserIdByRefreshTokenCommand(refreshToken),
+    );
     if (currentUserId) {
       try {
         const currentSessions =
@@ -47,15 +54,15 @@ export class DeviceController {
   @HttpCode(204)
   async deleteDevice(@Req() req: Request) {
     const refreshToken = req.cookies.refreshToken;
-    const currentUserInfo =
-      await this.jwtService.getTokenInfoByRefreshToken(refreshToken);
+    const currentUserInfo = await this.commandBus.execute(
+      new GetTokenInfoByRefreshTokenCommand(refreshToken),
+    );
     if (currentUserInfo.data) {
       const currentDeviceId = currentUserInfo.data.deviceId;
       const currentUserId = currentUserInfo.data.userId;
 
-      const isDeleted: boolean = await this.deviceService.deleteOtherUserDevice(
-        currentUserId,
-        currentDeviceId,
+      const isDeleted: boolean = await this.commandBus.execute(
+        new DeleteOtherUserDeviceCommand(currentUserId, currentDeviceId),
       );
       if (isDeleted) {
         return true;
@@ -76,14 +83,17 @@ export class DeviceController {
       throw new NotFoundException();
     }
     const refreshToken = req.cookies.refreshToken;
-    const currentUserInfo =
-      await this.jwtService.getTokenInfoByRefreshToken(refreshToken);
+    const currentUserInfo = await this.commandBus.execute(
+      new GetTokenInfoByRefreshTokenCommand(refreshToken),
+    );
     if (currentUserInfo.data === null)
       return mappingErrorStatus(currentUserInfo);
 
-    const result = await this.deviceService.deleteUserDeviceById(
-      currentUserInfo.data,
-      req.params.deviceId,
+    const result = await this.commandBus.execute(
+      new DeleteUserDeviceByIdCommand(
+        currentUserInfo.data,
+        req.params.deviceId,
+      ),
     );
     if (result.resultCode !== ResultCode.Success) {
       const returnStatus = mapStatus(result.resultCode);

@@ -1,17 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { LikeStatusOption } from './comments.types';
 import { CommentsQueryRepository } from './commentsQuery.repository';
 import { CommentsRepository } from './comments.repository';
-import {
-  LikeStatus,
-  LikeStatusDBType,
-  LikeStatusDocument,
-} from '../likeStatus/likeStatus.type';
-import { Model, Types } from 'mongoose';
+import { LikeStatus, LikeStatusDocument } from '../likeStatus/likeStatus.type';
+import { Model } from 'mongoose';
 import { PostQueryRepository } from '../posts/postQuery.repository';
 import { UsersQueryRepository } from '../users/usersQuery.repository';
 import { InjectModel } from '@nestjs/mongoose';
-import { ResultCode, ResultObject } from '../helpers/heplersType';
 
 @Injectable()
 export class CommentsService {
@@ -101,50 +95,61 @@ export class CommentsService {
   //   return this.commentRepository.updatedCommentById(commentId, commentContent);
   // }
 
-  async updateCommentLikeStatusById(
-    commentId: string,
-    newLikeStatusForComment: LikeStatusOption,
-    userId: string,
-  ): Promise<ResultObject<string>> {
-    const commentInfo =
-      await this.commentQueryRepository.getCommentById(commentId);
-    if (!commentInfo)
-      return {
-        data: null,
-        resultCode: ResultCode.NotFound,
-        message: 'couldn`t find comment',
-      };
-    const currentUser = await this.usersRepository.findUserById(userId);
-    const findLikeStatusInDB: LikeStatusDBType | null =
-      await this.likeStatusModel.findOne({
-        entityId: commentInfo.id,
-        userId: userId,
-      });
-
-    if (!findLikeStatusInDB) {
-      await this.commentRepository.createLikeStatus(
-        new Types.ObjectId(commentInfo.id),
-        new Types.ObjectId(currentUser!.id),
-        currentUser!.login,
-        newLikeStatusForComment,
-      );
-      return {
-        data: 'ok',
-        resultCode: ResultCode.NoContent,
-      };
-    }
-    await this.commentRepository.updateLikeStatus(
-      new Types.ObjectId(commentInfo.id),
-      new Types.ObjectId(currentUser!.id),
-      newLikeStatusForComment,
-    );
-
-    //findLikeStatusInDB.likeStatus = newLikeStatusForComment;
-
-    return {
-      data: 'ok',
-      resultCode: ResultCode.NoContent,
-    };
-    // return commentRepository.updatedCommentLikeStatusById(commentInfo._id.toString(), newLikeStatusForComment)
-  }
+  // async updateCommentLikeStatusById(
+  //   commentId: string,
+  //   newLikeStatusForComment: LikeStatusOption,
+  //   userId: string,
+  // ): Promise<ResultObject<string>> {
+  //   if (
+  //     newLikeStatusForComment !== LikeStatusOption.None ||
+  //     LikeStatusOption.Dislike ||
+  //     LikeStatusOption.Like
+  //   ) {
+  //     return {
+  //       data: null,
+  //       resultCode: ResultCode.NotFound,
+  //       message: 'error like status',
+  //     };
+  //   }
+  //   const commentInfo =
+  //     await this.commentQueryRepository.getCommentById(commentId);
+  //   if (!commentInfo)
+  //     return {
+  //       data: null,
+  //       resultCode: ResultCode.NotFound,
+  //       message: 'couldn`t find comment',
+  //     };
+  //   const currentUser = await this.usersRepository.findUserById(userId);
+  //   const findLikeStatusInDB: LikeStatusDBType | null =
+  //     await this.likeStatusModel.findOne({
+  //       entityId: commentInfo.id,
+  //       userId: userId,
+  //     });
+  //
+  //   if (!findLikeStatusInDB) {
+  //     await this.commentRepository.createLikeStatus(
+  //       new Types.ObjectId(commentInfo.id),
+  //       new Types.ObjectId(currentUser!.id),
+  //       currentUser!.login,
+  //       newLikeStatusForComment,
+  //     );
+  //     return {
+  //       data: 'ok',
+  //       resultCode: ResultCode.NoContent,
+  //     };
+  //   }
+  //   await this.commentRepository.updateLikeStatus(
+  //     new Types.ObjectId(commentInfo.id),
+  //     new Types.ObjectId(currentUser!.id),
+  //     newLikeStatusForComment,
+  //   );
+  //
+  //   //findLikeStatusInDB.likeStatus = newLikeStatusForComment;
+  //
+  //   return {
+  //     data: 'ok',
+  //     resultCode: ResultCode.NoContent,
+  //   };
+  //   // return commentRepository.updatedCommentLikeStatusById(commentInfo._id.toString(), newLikeStatusForComment)
+  // }
 }

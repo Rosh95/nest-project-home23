@@ -19,6 +19,9 @@ import { Types } from 'mongoose';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { QueryData } from '../helpers/decorators/helpers.decorator.queryData';
 import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
+import { CommandBus } from '@nestjs/cqrs';
+import { CreateUserCommand } from './application/use-cases/CreateUser';
+import { DeleteUserCommand } from './application/use-cases/DeleteUser';
 
 @Injectable()
 @Controller('users')
@@ -26,6 +29,7 @@ export class UsersController {
   constructor(
     public userService: UsersService,
     public usersQueryRepository: UsersQueryRepository,
+    private commandBus: CommandBus,
   ) {}
 
   @UseGuards(BasicAuthGuard)
@@ -54,7 +58,9 @@ export class UsersController {
   async deleteUserById(
     @Param('userId', new ParseObjectIdPipe()) userId: Types.ObjectId,
   ) {
-    const result = await this.userService.deleteUser(userId.toString());
+    const result = await this.commandBus.execute(
+      new DeleteUserCommand(userId.toString()),
+    );
     if (result.data == null) {
       return mappingErrorStatus(result);
     }
@@ -64,8 +70,9 @@ export class UsersController {
   @UseGuards(BasicAuthGuard)
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
-    const newUser: ResultObject<string> =
-      await this.userService.createUser(createUserDto);
+    const newUser: ResultObject<string> = await this.commandBus.execute(
+      new CreateUserCommand(createUserDto),
+    );
     if (newUser.data === null) {
       return mappingErrorStatus(newUser);
     }

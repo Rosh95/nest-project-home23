@@ -25,12 +25,22 @@ import {
   PaginatorPostViewType,
   PostViewModel,
 } from '../posts/post.types';
-import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
+import {
+  mappingErrorStatus,
+  ResultCode,
+  ResultObject,
+} from '../helpers/heplersType';
 import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
 import { Types } from 'mongoose';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { QueryData } from '../helpers/decorators/helpers.decorator.queryData';
 import { AccessTokenHeader } from '../users/decorators/user.decorator';
+import { CommandBus } from '@nestjs/cqrs';
+import { CreatePostForExistingBlogCommand } from '../posts/application/use-cases/CreatePostForExistingBlog';
+import { CreateBlogCommand } from './application/use-cases/CreateBlog';
+import { DeleteBlogCommand } from './application/use-cases/DeleteBlog';
+import { UpdateBlogCommand } from './application/use-cases/UpdateBlog';
+import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
 
 @Injectable()
 @Controller('blogs')
@@ -42,6 +52,7 @@ export class BlogController {
     public postQueryRepository: PostQueryRepository,
     public jwtService: JwtService,
     public helpers: Helpers,
+    private commandBus: CommandBus,
   ) {}
 
   @Get()
@@ -70,7 +81,9 @@ export class BlogController {
   async deleteBlog(
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
   ) {
-    const result = await this.blogService.deleteBlog(blogId.toString());
+    const result = await this.commandBus.execute(
+      new DeleteBlogCommand(blogId.toString()),
+    );
     console.log(mappingErrorStatus(result));
     if (result.data === null) return mappingErrorStatus(result);
     return true;
@@ -79,8 +92,9 @@ export class BlogController {
   @UseGuards(BasicAuthGuard)
   @Post()
   async createBlog(@Body() inputData: CreateBlogDto) {
-    const createBlogInfo: ResultObject<string> =
-      await this.blogService.createBlog(inputData);
+    const createBlogInfo: ResultObject<string> = await this.commandBus.execute(
+      new CreateBlogCommand(inputData),
+    );
     if (createBlogInfo.data === null) return mappingErrorStatus(createBlogInfo);
     return await this.blogQueryRepository.findBlogById(createBlogInfo.data);
   }
@@ -92,9 +106,8 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @Body() createBlogDto: CreateBlogDto,
   ) {
-    const updateBlog: ResultObject<string> = await this.blogService.updateBlog(
-      blogId.toString(),
-      createBlogDto,
+    const updateBlog: ResultObject<string> = await this.commandBus.execute(
+      new UpdateBlogCommand(blogId.toString(), createBlogDto),
     );
     if (updateBlog.data === null) {
       mappingErrorStatus(updateBlog);
@@ -110,8 +123,9 @@ export class BlogController {
     @AccessTokenHeader() accessToken: string,
   ) {
     const currentAccessToken = accessToken ? accessToken : null;
-    const userId =
-      await this.jwtService.getUserIdByAccessToken(currentAccessToken);
+    const userId = await this.commandBus.execute(
+      new GetUserIdByAccessTokenCommand(currentAccessToken),
+    );
     const foundPosts: PaginatorPostViewType | null =
       await this.postQueryRepository.getAllPostOfBlog(
         blogId.toString(),
@@ -119,7 +133,12 @@ export class BlogController {
         userId,
       );
     if (foundPosts === null) {
-      throw new NotFoundException();
+      return mappingErrorStatus({
+        data: null,
+        resultCode: ResultCode.NotFound,
+        message:
+          'couldn`t found post of this blog, maybe this blog doesn`t exist',
+      });
     }
     return foundPosts;
   }
@@ -133,11 +152,9 @@ export class BlogController {
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @Body() createPostDto: CreatePostDto,
   ) {
-    const newPost: ResultObject<string> =
-      await this.postService.createPostForExistingBlog(
-        blogId.toString(),
-        createPostDto,
-      );
+    const newPost: ResultObject<string> = await this.commandBus.execute(
+      new CreatePostForExistingBlogCommand(createPostDto, blogId.toString()),
+    );
     if (newPost.data === null) {
       return mappingErrorStatus(newPost);
     }

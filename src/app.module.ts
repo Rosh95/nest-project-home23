@@ -57,8 +57,34 @@ import { LocalAuthGuard } from './auth/guards/local-auth.guard';
 import { LocalStrategy } from './auth/strategies/local.strategy';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CreateCommentForPost } from './comments/application/use-cases/CreateCommentForPost';
-import { DeleteCommentById } from './comments/application/use-cases/deleteCommentById';
-import { UpdateCommentById } from './comments/application/use-cases/updateCommentById';
+import { DeleteCommentById } from './comments/application/use-cases/DeleteCommentById';
+import { UpdateCommentById } from './comments/application/use-cases/UpdateCommentById';
+import { UpdateCommentLikeStatusById } from './comments/application/use-cases/UpdateCommentLikeStatusById';
+import { CreateUser } from './users/application/use-cases/CreateUser';
+import { DeleteUser } from './users/application/use-cases/DeleteUser';
+import { FindUserById } from './users/application/use-cases/FindUserById';
+import { CreatePost } from './posts/application/use-cases/CreatePost';
+import { CreatePostForExistingBlog } from './posts/application/use-cases/CreatePostForExistingBlog';
+import { DeletePost } from './posts/application/use-cases/DeletePost';
+import { UpdatePost } from './posts/application/use-cases/UpdatePost';
+import { UpdatePostLikeStatusById } from './posts/application/use-cases/UpdatePostLikeStatusById';
+import { GetUserIdByAccessToken } from './jwt/application/use-cases/GetUserIdByAccessToken';
+import { GetUserIdByRefreshToken } from './jwt/application/use-cases/GetUserIdByRefreshToken';
+import { GetTokenInfoByRefreshToken } from './jwt/application/use-cases/GetTokenInfoByRefreshToken';
+import { CreateRefreshJWT } from './jwt/application/use-cases/CreateRefreshJWT';
+import { CreateJWT } from './jwt/application/use-cases/CreateJWT';
+import { DeleteOtherUserDevice } from './devices/application/use-cases/DeleteOtherUserDevice';
+import { DeleteUserDeviceById } from './devices/application/use-cases/DeleteUserDeviceById';
+import { CreateBlog } from './blogs/application/use-cases/CreateBlog';
+import { DeleteBlog } from './blogs/application/use-cases/DeleteBlog';
+import { UpdateBlog } from './blogs/application/use-cases/UpdateBlog';
+import { CreateUserByRegistration } from './auth/application/use-cases/CreateUserByRegistration';
+import { ConfirmEmail } from './auth/application/use-cases/ConfirmEmail';
+import { ConfirmAndChangePassword } from './auth/application/use-cases/ConfirmAndChangePassword';
+import { CheckCredential } from './auth/application/use-cases/CheckCredential';
+import { ChangeUserConfirmationCode } from './auth/application/use-cases/ChangeUserConfirmationCode';
+import { AddRecoveryCodeAndEmail } from './auth/application/use-cases/AddRecoveryCodeAndEmail';
+import { AddDeviceInfoToDB } from './auth/application/use-cases/AddDeviceInfoToDB';
 
 const providers = [
   AppService,
@@ -92,7 +118,38 @@ const providers = [
   LocalAuthGuard,
   LocalStrategy,
 ];
-const useCases = [CreateCommentForPost, DeleteCommentById, UpdateCommentById];
+const useCases = [
+  CreateCommentForPost,
+  DeleteCommentById,
+  UpdateCommentById,
+  UpdateCommentLikeStatusById,
+  CreateUser,
+  DeleteUser,
+  FindUserById,
+  CreatePost,
+  CreatePostForExistingBlog,
+  DeletePost,
+  UpdatePost,
+  UpdatePostLikeStatusById,
+  GetUserIdByAccessToken,
+  GetUserIdByRefreshToken,
+  GetTokenInfoByRefreshToken,
+  CreateRefreshJWT,
+  CreateJWT,
+  DeleteOtherUserDevice,
+  DeleteUserDeviceById,
+  CreateBlog,
+  DeleteBlog,
+  UpdateBlog,
+  CreateUserByRegistration,
+  ConfirmEmail,
+  ConfirmAndChangePassword,
+  CheckCredential,
+  ChangeUserConfirmationCode,
+  AddRecoveryCodeAndEmail,
+  AddDeviceInfoToDB,
+];
+
 @Module({
   imports: [
     CqrsModule,

@@ -29,6 +29,16 @@ import {
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { emailDto, newPasswordWithRecoveryCodeDto } from './auth.types';
+import { CommandBus } from '@nestjs/cqrs';
+import { FindUserByIdCommand } from '../users/application/use-cases/FindUserById';
+import { CreateUserByRegistrationCommand } from './application/use-cases/CreateUserByRegistration';
+import { ConfirmAndChangePasswordCommand } from './application/use-cases/ConfirmAndChangePassword';
+import { ConfirmEmailCommand } from './application/use-cases/ConfirmEmail';
+import { AddRecoveryCodeAndEmailCommand } from './application/use-cases/AddRecoveryCodeAndEmail';
+import { ChangeUserConfirmationCodeCommand } from './application/use-cases/ChangeUserConfirmationCode';
+import { AddDeviceInfoToDBCommand } from './application/use-cases/AddDeviceInfoToDB';
+import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
+import { GetTokenInfoByRefreshTokenCommand } from '../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 
 @Injectable()
 @Controller('auth')
@@ -38,6 +48,7 @@ export class AuthController {
     public jwtService: JwtService,
     public deviceRepository: DeviceRepository,
     public userService: UsersService,
+    private commandBus: CommandBus,
   ) {}
 
   @Post('/login')
@@ -49,10 +60,8 @@ export class AuthController {
     @Ip() ip: string,
     @UserId() userId: string,
   ) {
-    const tokensInfo = await this.authService.addDeviceInfoToDB(
-      new Types.ObjectId(userId),
-      userAgent,
-      ip,
+    const tokensInfo = await this.commandBus.execute(
+      new AddDeviceInfoToDBCommand(new Types.ObjectId(userId), userAgent, ip),
     );
     if (tokensInfo.data === null) return mappingErrorStatus(tokensInfo);
     res.cookie('refreshToken', tokensInfo.data.refreshToken, {
@@ -70,16 +79,19 @@ export class AuthController {
     @Ip() ip: string,
     @Cookies('refreshToken') refreshToken: string,
   ) {
-    const currentUserInfo =
-      await this.jwtService.getTokenInfoByRefreshToken(refreshToken);
+    const currentUserInfo = await this.commandBus.execute(
+      new GetTokenInfoByRefreshTokenCommand(refreshToken),
+    );
     if (!currentUserInfo.data) throw new UnauthorizedException();
     const currentUserId: string = currentUserInfo.data.userId;
     const currentDeviceId: string = currentUserInfo.data.deviceId;
-    const tokens = await this.authService.addDeviceInfoToDB(
-      new Types.ObjectId(currentUserId),
-      currentDeviceId,
-      ip,
-      currentDeviceId,
+    const tokens = await this.commandBus.execute(
+      new AddDeviceInfoToDBCommand(
+        new Types.ObjectId(currentUserId),
+        currentDeviceId,
+        ip,
+        currentDeviceId,
+      ),
     );
     return res
       .cookie('refreshToken', tokens.data.refreshToken, {
@@ -98,8 +110,9 @@ export class AuthController {
     @Cookies('refreshToken') refreshToken: string,
   ) {
     //убрать лишнюю инфу в базе данных ( обнулить дату создания )
-    const currentUserInfo =
-      await this.jwtService.getTokenInfoByRefreshToken(refreshToken);
+    const currentUserInfo = await this.commandBus.execute(
+      new GetTokenInfoByRefreshTokenCommand(refreshToken),
+    );
     if (!currentUserInfo.data) return mappingErrorStatus(currentUserInfo);
     const currentUserId: string = currentUserInfo.data.userId;
     const currentDeviceId: string = currentUserInfo.data.deviceId;
@@ -112,9 +125,13 @@ export class AuthController {
 
   @Get('/me')
   async getInfoOfCurrentUser(@AccessTokenHeader() accessToken: string) {
-    const userId = await this.jwtService.getUserIdByAccessToken(accessToken);
+    const userId = await this.commandBus.execute(
+      new GetUserIdByAccessTokenCommand(accessToken),
+    );
     if (!userId) throw new UnauthorizedException();
-    const currentUser = await this.userService.findUserById(userId.toString());
+    const currentUser = await this.commandBus.execute(
+      new FindUserByIdCommand(userId.toString()),
+    );
     if (!currentUser) throw new BadRequestException('couldn`t find user');
     const currentUserInfo: CurrentUserInfoType = {
       login: currentUser.accountData.login,
@@ -127,8 +144,9 @@ export class AuthController {
   @Post('/registration')
   @HttpCode(204)
   async registrationUser(@Body() createUserDto: CreateUserDto) {
-    const newUser: ResultObject<string> =
-      await this.authService.createUser(createUserDto);
+    const newUser: ResultObject<string> = await this.commandBus.execute(
+      new CreateUserByRegistrationCommand(createUserDto),
+    );
     if (newUser.data === null) return mappingErrorStatus(newUser);
 
     return true;
@@ -139,7 +157,7 @@ export class AuthController {
   async registrationConfirmation(@Body('code') code: string) {
     if (!code || code.toString().length === 0)
       mappingBadRequest('code doesn`t exist', 'code');
-    const result = await this.authService.confirmEmail(code);
+    const result = await this.commandBus.execute(new ConfirmEmailCommand(code));
     if (!result.data) return mappingErrorStatus(result);
     return true;
   }
@@ -147,8 +165,9 @@ export class AuthController {
   @Post('/registration-email-resending')
   @HttpCode(204)
   async registrationEmailResending(@Body() { email }: emailDto) {
-    const newUserConfirmationCode =
-      await this.authService.changeUserConfirmationcode(email);
+    const newUserConfirmationCode = await this.commandBus.execute(
+      new ChangeUserConfirmationCodeCommand(email),
+    );
     if (newUserConfirmationCode.data === null)
       return mappingErrorStatus(newUserConfirmationCode);
 
@@ -166,7 +185,9 @@ export class AuthController {
   @Post('/password-recovery')
   @HttpCode(204)
   async passwordRecovery(@Body() { email }: emailDto) {
-    const recoveryCode = await this.authService.addRecoveryCodeAndEmail(email);
+    const recoveryCode = await this.commandBus.execute(
+      new AddRecoveryCodeAndEmailCommand(email),
+    );
     if (recoveryCode.data === null) return mappingErrorStatus(recoveryCode);
     try {
       await emailAdapter.sendRecoveryPasswordEmail(recoveryCode.data, email);
@@ -181,9 +202,8 @@ export class AuthController {
   async getNewPassword(
     @Body() { newPassword, newRecoveryCode }: newPasswordWithRecoveryCodeDto,
   ) {
-    const result = await this.authService.сonfirmAndChangePassword(
-      newRecoveryCode,
-      newPassword,
+    const result = await this.commandBus.execute(
+      new ConfirmAndChangePasswordCommand(newRecoveryCode, newPassword),
     );
     if (result.data === null) return mappingErrorStatus(result);
     return true;
