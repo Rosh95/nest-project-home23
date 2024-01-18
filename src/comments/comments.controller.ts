@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { CommentsQueryRepository } from './commentsQuery.repository';
 import { JwtService } from '../jwt/jwt.service';
-import { CommentsViewModel, LikeStatusOption } from './comments.types';
+import { CommentsViewModel, LikeStatusOptionVariable } from './comments.types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
 import { CreateCommentDto } from '../posts/post.types';
@@ -83,7 +83,7 @@ export class CommentsController {
   @HttpCode(204)
   async updateCommentLikeStatus(
     @Param('commentId') commentId: string,
-    @Body('likeStatus') likeStatus: LikeStatusOption,
+    @Body() { likeStatus }: LikeStatusOptionVariable,
     @UserId() userId: string,
   ) {
     const result = await this.commandBus.execute(

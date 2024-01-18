@@ -35,17 +35,6 @@ export class UpdateCommentLikeStatusById
   async execute(
     command: UpdateCommentLikeStatusByIdCommand,
   ): Promise<ResultObject<string>> {
-    if (
-      command.newLikeStatusForComment !== LikeStatusOption.None ||
-      LikeStatusOption.Dislike ||
-      LikeStatusOption.Like
-    ) {
-      return {
-        data: null,
-        resultCode: ResultCode.NotFound,
-        message: 'error like status',
-      };
-    }
     const commentInfo = await this.commentQueryRepository.getCommentById(
       command.commentId,
     );

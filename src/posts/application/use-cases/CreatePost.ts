@@ -2,14 +2,14 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { Helpers } from '../../../helpers/helpers';
 import { PostRepository } from '../../post.repository';
-import { CreatePostDto, PostDBModel } from '../../post.types';
+import { CreatePostWithBlogIdDto, PostDBModel } from '../../post.types';
 import { BlogViewType } from '../../../blogs/blogs.types';
 import { ObjectId } from 'mongodb';
 import { BlogQueryRepository } from '../../../blogs/blogQuery.repository';
 
 export class CreatePostCommand {
   constructor(
-    public createPostDto: CreatePostDto,
+    public createPostDto: CreatePostWithBlogIdDto,
     public blogId: string,
   ) {}
 }
@@ -25,18 +25,17 @@ export class CreatePost implements ICommandHandler<CreatePostCommand> {
   async execute(command: CreatePostCommand): Promise<ResultObject<string>> {
     await this.helpers.validateOrRejectModel(
       command.createPostDto,
-      CreatePostDto,
+      CreatePostWithBlogIdDto,
     );
 
     const foundBlog: BlogViewType | null =
       await this.blogQueryRepository.findBlogById(command.blogId);
     if (!foundBlog) {
-      const error: ResultObject<string> = {
+      return {
         data: null,
         resultCode: ResultCode.BadRequest,
         message: 'couldn`t find this blog',
       };
-      return error;
     }
     const newPost: PostDBModel = {
       _id: new ObjectId(),
@@ -49,12 +48,10 @@ export class CreatePost implements ICommandHandler<CreatePostCommand> {
     };
     const createdPostId = await this.postRepository.createPost(newPost);
     if (createdPostId) {
-      const result: ResultObject<string> = {
+      return {
         data: createdPostId,
         resultCode: ResultCode.Created,
       };
-
-      return result;
     }
     return {
       data: null,

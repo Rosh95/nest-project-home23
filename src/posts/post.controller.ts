@@ -18,6 +18,7 @@ import { PostQueryRepository } from './postQuery.repository';
 import {
   CreateCommentDto,
   CreatePostDto,
+  CreatePostWithBlogIdDto,
   PaginatorPostViewType,
   PostViewModel,
 } from './post.types';
@@ -114,11 +115,11 @@ export class PostController {
   @Post()
   @HttpCode(201)
   async createPost(
-    @Body() createPostDto: CreatePostDto,
-    @Body('blogId') blogId: string,
+    @Body() createPostDto: CreatePostWithBlogIdDto,
+    // @Body('blogId') { blogId }: IsBlogExist,
   ) {
     const newPost: ResultObject<string> = await this.commandBus.execute(
-      new CreatePostCommand(createPostDto, blogId),
+      new CreatePostCommand(createPostDto, createPostDto.blogId),
     );
     if (newPost.data === null) return mappingErrorStatus(newPost);
     const gotNewPost: PostViewModel | null =
@@ -198,7 +199,6 @@ export class PostController {
       userId,
     );
   }
-
   @UseGuards(JwtAuthGuard)
   @Put(':postId/like-status')
   @HttpCode(204)

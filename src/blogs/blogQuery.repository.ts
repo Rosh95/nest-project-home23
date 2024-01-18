@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ObjectId } from 'mongodb';
 import { BlogDbType, BlogViewType } from './blogs.types';
 import { newPaginatorViewType, queryDataType } from '../helpers/helpers';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Blog, BlogDocument } from './blog.schema';
 import { Post, PostDocument } from '../posts/post.schema';
@@ -68,7 +67,7 @@ export class BlogQueryRepository {
 
   async findBlogById(id: string): Promise<BlogViewType | null> {
     const foundBlog: BlogDbType | null = await this.blogModel.findOne({
-      _id: new ObjectId(id),
+      _id: new Types.ObjectId(id),
     });
     if (foundBlog) {
       return await this.blogMapping(foundBlog);

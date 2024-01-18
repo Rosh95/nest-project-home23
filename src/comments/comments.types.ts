@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { IsIn } from 'class-validator';
+import { IsEnum, IsIn } from 'class-validator';
 
 export type CommentatorInfo = {
   userId: string;
@@ -16,11 +16,19 @@ export type CommentsViewModel = {
 export type CommentsInputType = {
   content: string;
 };
-
 export enum LikeStatusOption {
   None = 'None',
   Like = 'Like',
   Dislike = 'Dislike',
+}
+export class LikeStatusDto {
+  @IsEnum(LikeStatusOption)
+  // @IsIn([
+  //   LikeStatusOption.None,
+  //   LikeStatusOption.Like,
+  //   LikeStatusOption.Dislike,
+  // ])
+  likeStatus: LikeStatusOption;
 }
 
 export class LikeStatusOptionVariable {
