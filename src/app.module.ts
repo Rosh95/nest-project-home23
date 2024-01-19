@@ -85,6 +85,7 @@ import { CheckCredential } from './auth/application/use-cases/CheckCredential';
 import { ChangeUserConfirmationCode } from './auth/application/use-cases/ChangeUserConfirmationCode';
 import { AddRecoveryCodeAndEmail } from './auth/application/use-cases/AddRecoveryCodeAndEmail';
 import { AddDeviceInfoToDB } from './auth/application/use-cases/AddDeviceInfoToDB';
+import { BlogExistsRule } from './posts/post.types';
 
 const providers = [
   AppService,
@@ -117,6 +118,7 @@ const providers = [
   JwtAuthGuard,
   LocalAuthGuard,
   LocalStrategy,
+  BlogExistsRule,
 ];
 const useCases = [
   CreateCommentForPost,

@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsString,
   Length,
+  Validate,
   ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
@@ -140,7 +141,7 @@ export class CreatePostWithBlogIdDto {
   @IsNotEmpty()
   @IsString()
   @Transform(({ value }: TransformFnParams) => value?.trim())
-  //@Validate(BlogExistsRule)
+  @Validate(BlogExistsRule)
   blogId: string;
 }
 // export class IsBlogExist {

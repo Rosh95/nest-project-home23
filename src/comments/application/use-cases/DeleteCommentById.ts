@@ -26,7 +26,7 @@ export class DeleteCommentById
         resultCode: ResultCode.NotFound,
         message: 'couldn`t find comment',
       };
-    if (commentInfo.commentatorInfo.userId !== command.userId) {
+    if (commentInfo.commentatorInfo.userId.toString() !== command.userId) {
       return {
         data: null,
         resultCode: ResultCode.Forbidden,
