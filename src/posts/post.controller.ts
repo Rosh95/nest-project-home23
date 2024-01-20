@@ -17,10 +17,8 @@ import { PostService } from './post.service';
 import { PostQueryRepository } from './postQuery.repository';
 import {
   CreateCommentDto,
-  CreatePostDto,
   CreatePostWithBlogIdDto,
   PaginatorPostViewType,
-  PostIdDto,
   PostViewModel,
 } from './post.types';
 import { Request } from 'express';
@@ -133,12 +131,11 @@ export class PostController {
   @Put(':postId')
   @HttpCode(204)
   async updatePost(
-    @Body() createPostDto: CreatePostDto,
-    @Param() postId: PostIdDto,
+    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
+    @Body() createPostDto: CreatePostWithBlogIdDto,
   ) {
-    //if (!postId) new NotFoundException();
     const PostUpdatedInfo: ResultObject<string> = await this.commandBus.execute(
-      new UpdatePostCommand(postId.postId, createPostDto),
+      new UpdatePostCommand(postId.toString(), createPostDto),
     );
     if (PostUpdatedInfo.data === null)
       return mappingErrorStatus(PostUpdatedInfo);

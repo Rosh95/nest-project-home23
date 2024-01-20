@@ -9,7 +9,7 @@ import {
 } from './post.types';
 import { LikeStatusOption } from '../comments/comments.types';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { LikeStatus, LikeStatusDocument } from '../likeStatus/likeStatus.type';
 import { Post, PostDocument } from './post.schema';
 import { BlogQueryRepository } from '../blogs/blogQuery.repository';
@@ -63,9 +63,10 @@ export class PostQueryRepository {
     id: string,
     userId?: ObjectId | null,
   ): Promise<PostViewModel | null> {
-    const foundPost: PostDBModel = <PostDBModel>(
-      await this.postModel.findOne({ _id: new ObjectId(id) })
-    );
+    const foundPost: PostDBModel | null = await this.postModel.findOne({
+      _id: new Types.ObjectId(id),
+    });
+
     return foundPost ? this.postMapping(foundPost, userId) : null;
   }
   async getAllPostOfBlog(

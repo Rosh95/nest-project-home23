@@ -78,6 +78,6 @@ export const mappingErrorStatus = (resultObject: ResultObject<any>) => {
         message: [{ message: textError, field: field }],
       });
     default:
-      return 418;
+      throw new InternalServerErrorException();
   }
 };

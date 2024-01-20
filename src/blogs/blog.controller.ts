@@ -118,7 +118,6 @@ export class BlogController {
   @Get(':blogId/posts')
   async getPostsFromBlogById(
     @QueryData() queryData: queryDataType,
-    @Req() req: Request,
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @AccessTokenHeader() accessToken: string,
   ) {

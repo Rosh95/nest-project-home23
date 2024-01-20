@@ -2,13 +2,13 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { Helpers } from '../../../helpers/helpers';
 import { PostRepository } from '../../post.repository';
-import { CreatePostDto } from '../../post.types';
+import { CreatePostWithBlogIdDto } from '../../post.types';
 import { PostQueryRepository } from '../../postQuery.repository';
 
 export class UpdatePostCommand {
   constructor(
     public postId: string,
-    public updatedPostData: CreatePostDto,
+    public updatedPostData: CreatePostWithBlogIdDto,
   ) {}
 }
 
@@ -23,7 +23,7 @@ export class UpdatePost implements ICommandHandler<UpdatePostCommand> {
   async execute(command: UpdatePostCommand): Promise<ResultObject<string>> {
     await this.helpers.validateOrRejectModel(
       command.updatedPostData,
-      CreatePostDto,
+      CreatePostWithBlogIdDto,
     );
 
     const isExistPost = await this.postQueryRepository.findPostById(

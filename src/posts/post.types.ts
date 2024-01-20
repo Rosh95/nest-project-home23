@@ -12,7 +12,7 @@ import {
 import { Transform, TransformFnParams } from 'class-transformer';
 import { Injectable } from '@nestjs/common';
 import { BlogQueryRepository } from '../blogs/blogQuery.repository';
-import { PostQueryRepository } from './postQuery.repository';
+import { Types } from 'mongoose';
 
 export type PostLikesUsersModel = {
   addedAt: string;
@@ -84,40 +84,16 @@ export class BlogExistsRule implements ValidatorConstraintInterface {
   constructor(private blogQueryRepository: BlogQueryRepository) {}
 
   async validate(value: string) {
-    try {
-      const result = await this.blogQueryRepository.findBlogById(value);
-      console.log(result + 'result!!');
-    } catch (e) {
-      console.log(e);
+    if (!Types.ObjectId.isValid(value)) {
       return false;
     }
-    return true;
+    const result = await this.blogQueryRepository.findBlogById(value);
+    return !!result;
   }
 
   defaultMessage(args: ValidationArguments) {
     console.log(args.value + 'args value');
     return 'Blog Doesn`t exist';
-  }
-}
-// Todo why false not breaking function
-@ValidatorConstraint({ name: 'PostsExists', async: true })
-@Injectable()
-export class PostExistsRule implements ValidatorConstraintInterface {
-  constructor(private postQueryRepository: PostQueryRepository) {}
-  async validate(value: string) {
-    try {
-      const result = await this.postQueryRepository.findPostById(value);
-      console.log(result + 'result!!');
-    } catch (e) {
-      console.log(e);
-      return false;
-    }
-    return true;
-  }
-
-  defaultMessage(args: ValidationArguments) {
-    console.log(args.value + 'args');
-    return 'Post Doesn`t exist';
   }
 }
 
@@ -143,8 +119,9 @@ export class CreatePostDto {
 
 export class CreatePostWithBlogIdDto {
   @IsNotEmpty()
-  @IsString()
+  //@IsMongoId()
   @Transform(({ value }: TransformFnParams) => value?.trim())
+  //@Transform(({ value }: TransformFnParams) => Types.ObjectId.isValid(value))
   @Validate(BlogExistsRule)
   blogId: string;
 
@@ -165,11 +142,6 @@ export class CreatePostWithBlogIdDto {
   @Transform(({ value }: TransformFnParams) => value?.trim())
   @Length(1, 1000)
   content: string;
-}
-export class PostIdDto {
-  // @Transform(({ value }: TransformFnParams) => value?.trim())
-  @Validate(PostExistsRule)
-  postId: string;
 }
 
 export class CreateCommentDto {
