@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   Injectable,
-  NotFoundException,
   Param,
   Put,
   UseGuards,
@@ -19,7 +18,7 @@ import { CreateCommentDto } from '../posts/post.types';
 import { CommandBus } from '@nestjs/cqrs';
 import { DeleteCommentByIdCommand } from './application/use-cases/DeleteCommentById';
 import { UpdateCommentByIdCommand } from './application/use-cases/UpdateCommentById';
-import { mappingErrorStatus } from '../helpers/heplersType';
+import { mappingErrorStatus, ResultCode } from '../helpers/heplersType';
 import { UpdateCommentLikeStatusByIdCommand } from './application/use-cases/UpdateCommentLikeStatusById';
 import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
 
@@ -45,7 +44,13 @@ export class CommentsController {
     const commentInfo: CommentsViewModel | null =
       await this.commentQueryRepository.getCommentById(commentId, userId);
 
-    return commentInfo ? commentInfo : new NotFoundException();
+    return commentInfo
+      ? commentInfo
+      : mappingErrorStatus({
+          data: null,
+          resultCode: ResultCode.NotFound,
+          message: 'couldn`t find comment',
+        });
   }
 
   @UseGuards(JwtAuthGuard)

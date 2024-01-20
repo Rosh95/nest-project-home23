@@ -27,7 +27,7 @@ export class UpdatePost implements ICommandHandler<UpdatePostCommand> {
     );
 
     const isExistPost = await this.postQueryRepository.findPostById(
-      command.postId.toString(),
+      command.postId,
     );
     if (!isExistPost) {
       return {
