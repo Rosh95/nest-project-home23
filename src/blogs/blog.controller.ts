@@ -137,8 +137,7 @@ export class BlogController {
         message:
           'couldn`t found post of this blog, maybe this blog doesn`t exist',
       });
-    }
-    return foundPosts;
+    } else return foundPosts;
   }
 
   @UseGuards(BasicAuthGuard)
