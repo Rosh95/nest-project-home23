@@ -84,7 +84,6 @@ export class BlogController {
     const result = await this.commandBus.execute(
       new DeleteBlogCommand(blogId.toString()),
     );
-    console.log(mappingErrorStatus(result));
     if (result.data === null) return mappingErrorStatus(result);
     return true;
   }
