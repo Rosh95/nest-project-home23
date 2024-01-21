@@ -130,6 +130,7 @@ export class BlogController {
         queryData,
         userId,
       );
+    console.log(foundPosts + 'foundposts');
     if (foundPosts === null) {
       return mappingErrorStatus({
         data: null,
