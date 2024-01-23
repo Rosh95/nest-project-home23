@@ -26,7 +26,7 @@ export class CreateRefreshJWT
         deviceId: command.deviceId,
       },
       settings.JWT_SECRET,
-      { expiresIn: '20s' },
+      { expiresIn: '1200s' },
     );
     return {
       refreshToken: token,
