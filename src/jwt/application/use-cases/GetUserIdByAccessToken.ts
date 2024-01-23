@@ -16,12 +16,16 @@ export class GetUserIdByAccessToken
   async execute(
     command: GetUserIdByAccessTokenCommand,
   ): Promise<Types.ObjectId | null> {
-    const result = command.token
-      ? (jwt.verify(command.token, settings.JWT_SECRET) as {
-          userId: string;
-        })
-      : null;
+    if (!command.token) return null;
+    let result;
+    try {
+      result = jwt.verify(command.token, settings.JWT_SECRET) as {
+        userId: string;
+      };
+    } catch (e) {
+      return null;
+    }
 
-    return result ? new Types.ObjectId(result.userId) : null;
+    return new Types.ObjectId(result.userId);
   }
 }

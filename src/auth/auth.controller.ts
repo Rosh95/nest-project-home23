@@ -7,6 +7,7 @@ import {
   HttpCode,
   Injectable,
   Ip,
+  NotFoundException,
   Post,
   Res,
   UnauthorizedException,
@@ -74,15 +75,16 @@ export class AuthController {
 
   @Post('/refresh-token')
   async refreshToken(
-    @Res() res: Response,
+    @Res({ passthrough: true }) res: Response,
     @Headers('User-Agent') userAgent: string | 'unknow',
     @Ip() ip: string,
     @Cookies('refreshToken') refreshToken: string,
   ) {
+    console.log('refresh token place');
     const currentUserInfo = await this.commandBus.execute(
       new GetTokenInfoByRefreshTokenCommand(refreshToken),
     );
-    if (!currentUserInfo.data) throw new UnauthorizedException();
+    if (currentUserInfo.data === null) mappingErrorStatus(currentUserInfo);
     const currentUserId: string = currentUserInfo.data.userId;
     const currentDeviceId: string = currentUserInfo.data.deviceId;
     const tokens = await this.commandBus.execute(
@@ -93,7 +95,8 @@ export class AuthController {
         currentDeviceId,
       ),
     );
-    return res
+    console.log('second refresh token');
+    res
       .cookie('refreshToken', tokens.data.refreshToken, {
         httpOnly: true,
         secure: true,
@@ -132,7 +135,7 @@ export class AuthController {
     const currentUser = await this.commandBus.execute(
       new FindUserByIdCommand(userId.toString()),
     );
-    if (!currentUser) throw new BadRequestException('couldn`t find user');
+    if (!currentUser) throw new NotFoundException('couldn`t find user');
     const currentUserInfo: CurrentUserInfoType = {
       login: currentUser.accountData.login,
       email: currentUser.accountData.email,

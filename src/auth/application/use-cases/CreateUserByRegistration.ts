@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { ObjectId } from 'mongodb';
-import { NewUsersDBType, UserInputType } from '../../../users/user.types';
+import { CreateUserDto, NewUsersDBType } from '../../../users/user.types';
 import { v4 as uuidv4 } from 'uuid';
 import add from 'date-fns/add';
 import { emailAdapter } from '../../../email/email.adapter';
@@ -11,7 +11,7 @@ import bcrypt from 'bcrypt';
 import { AuthService } from '../../auth.service';
 
 export class CreateUserByRegistrationCommand {
-  constructor(public userPostInputData: UserInputType) {}
+  constructor(public userPostInputData: CreateUserDto) {}
 }
 
 @CommandHandler(CreateUserByRegistrationCommand)
@@ -27,28 +27,28 @@ export class CreateUserByRegistration
   async execute(
     command: CreateUserByRegistrationCommand,
   ): Promise<ResultObject<string>> {
-    const isExistEmail = await this.userRepository.findLoginOrEmail(
-      command.userPostInputData.email,
-    );
-    const isExistLogin = await this.userRepository.findLoginOrEmail(
-      command.userPostInputData.login,
-    );
-    if (isExistEmail) {
-      return {
-        data: null,
-        resultCode: ResultCode.BadRequest,
-        field: 'email',
-        message: 'email is exist',
-      };
-    }
-    if (isExistLogin) {
-      return {
-        data: null,
-        resultCode: ResultCode.BadRequest,
-        field: 'login',
-        message: 'login is exist',
-      };
-    }
+    // const isExistEmail = await this.userRepository.findLoginOrEmail(
+    //   command.userPostInputData.email,
+    // );
+    // const isExistLogin = await this.userRepository.findLoginOrEmail(
+    //   command.userPostInputData.login,
+    // );
+    // if (isExistEmail) {
+    //   return {
+    //     data: null,
+    //     resultCode: ResultCode.BadRequest,
+    //     field: 'email',
+    //     message: 'email is exist',
+    //   };
+    // }
+    // if (isExistLogin) {
+    //   return {
+    //     data: null,
+    //     resultCode: ResultCode.BadRequest,
+    //     field: 'login',
+    //     message: 'login is exist',
+    //   };
+    // }
 
     const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this.authService._generateHash(

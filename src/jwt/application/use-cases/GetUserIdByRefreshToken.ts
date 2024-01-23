@@ -16,14 +16,14 @@ export class GetUserIdByRefreshToken
   async execute(
     command: GetUserIdByRefreshTokenCommand,
   ): Promise<ObjectId | null> {
+    let result;
     try {
-      const result = jwt.verify(command.token, settings.JWT_SECRET) as {
+      result = jwt.verify(command.token, settings.JWT_SECRET) as {
         userId: string;
       };
-
-      return new ObjectId(result.userId);
     } catch (error) {
       return null;
     }
+    return new ObjectId(result.userId);
   }
 }

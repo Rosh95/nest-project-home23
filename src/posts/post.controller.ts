@@ -9,7 +9,6 @@ import {
   Param,
   Post,
   Put,
-  Req,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
@@ -21,7 +20,6 @@ import {
   PaginatorPostViewType,
   PostViewModel,
 } from './post.types';
-import { Request } from 'express';
 import { Helpers, queryDataType } from '../helpers/helpers';
 import {
   mappingErrorStatus,
@@ -146,7 +144,6 @@ export class PostController {
   @Post(':postId/comments')
   async createCommentForPostById(
     @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
-    @Req() req: Request,
     @Body() { content }: CreateCommentDto,
     @UserId() userId: string,
   ) {

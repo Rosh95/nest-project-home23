@@ -12,6 +12,7 @@ export const AccessTokenHeader = createParamDecorator(
     if (request.headers.authorization) {
       const token = request.headers.authorization.split(' ')[1];
       return token;
-    } else null;
+    }
+    return null;
   },
 );

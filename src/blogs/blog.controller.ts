@@ -9,7 +9,6 @@ import {
   Param,
   Post,
   Put,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { BlogService } from './blogs.service';
@@ -18,7 +17,6 @@ import { PostService } from '../posts/post.service';
 import { PostQueryRepository } from '../posts/postQuery.repository';
 import { Helpers, queryDataType } from '../helpers/helpers';
 import { BlogViewType, CreateBlogDto } from './blogs.types';
-import { Request } from 'express';
 import { JwtService } from '../jwt/jwt.service';
 import {
   CreatePostDto,
@@ -146,7 +144,6 @@ export class BlogController {
   @HttpCode(201)
   async createPostForBlogById(
     @QueryData() queryData: queryDataType,
-    @Req() req: Request,
     @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
     @Body() createPostDto: CreatePostDto,
   ) {

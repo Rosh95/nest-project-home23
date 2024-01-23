@@ -58,17 +58,17 @@ export class JwtService {
   //     iat: number;
   //     exp: number;
   //   };
-  //   // const currentUser = await this.usersQueryRepository.findUserById(
-  //   //   result.userId,
-  //   // );
-  //   //
-  //   // if (!currentUser) {
-  //   //   return {
-  //   //     data: null,
-  //   //     resultCode: ResultCode.Unauthorized,
-  //   //     message: 'couldn`t find user',
-  //   //   };
-  //   // }
+  //   const currentUser = await this.usersQueryRepository.findUserById(
+  //     result.userId,
+  //   );
+  //
+  //   if (!currentUser) {
+  //     return {
+  //       data: null,
+  //       resultCode: ResultCode.Unauthorized,
+  //       message: 'couldn`t find user',
+  //     };
+  //   }
   //   return {
   //     data: result,
   //     resultCode: ResultCode.NoContent,
