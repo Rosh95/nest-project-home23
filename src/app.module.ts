@@ -87,6 +87,8 @@ import { AddRecoveryCodeAndEmail } from './auth/application/use-cases/AddRecover
 import { AddDeviceInfoToDB } from './auth/application/use-cases/AddDeviceInfoToDB';
 import { BlogExistsRule } from './posts/post.types';
 import { EmailExistsRule, LoginExistsRule } from './users/user.types';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 const providers = [
   AppService,
@@ -122,10 +124,10 @@ const providers = [
   BlogExistsRule,
   LoginExistsRule,
   EmailExistsRule,
-  // {
-  //   provide: APP_GUARD,
-  //   useClass: ThrottlerGuard,
-  // },
+  {
+    provide: APP_GUARD,
+    useClass: ThrottlerGuard,
+  },
 ];
 const useCases = [
   CreateCommentForPost,
@@ -162,12 +164,12 @@ const useCases = [
 @Module({
   imports: [
     CqrsModule,
-    // ThrottlerModule.forRoot([
-    //   {
-    //     ttl: 10000,
-    //     limit: 5,
-    //   },
-    // ]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 10000,
+        limit: 5,
+      },
+    ]),
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(getMongoUri()),
     JwtModule.register({
