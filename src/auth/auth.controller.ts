@@ -21,7 +21,6 @@ import { UsersService } from '../users/users.service';
 import { CreateUserDto, CurrentUserInfoType } from '../users/user.types';
 import { emailAdapter } from '../email/email.adapter';
 import { Types } from 'mongoose';
-import { Cookies } from './decorators/auth.decorator';
 import {
   mappingBadRequest,
   mappingErrorStatus,
@@ -29,7 +28,11 @@ import {
 } from '../helpers/heplersType';
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
-import { emailDto, newPasswordWithRecoveryCodeDto } from './auth.types';
+import {
+  Cookies,
+  emailDto,
+  newPasswordWithRecoveryCodeDto,
+} from './auth.types';
 import { CommandBus } from '@nestjs/cqrs';
 import { FindUserByIdCommand } from '../users/application/use-cases/FindUserById';
 import { CreateUserByRegistrationCommand } from './application/use-cases/CreateUserByRegistration';
@@ -39,7 +42,8 @@ import { AddRecoveryCodeAndEmailCommand } from './application/use-cases/AddRecov
 import { ChangeUserConfirmationCodeCommand } from './application/use-cases/ChangeUserConfirmationCode';
 import { AddDeviceInfoToDBCommand } from './application/use-cases/AddDeviceInfoToDB';
 import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
-import { GetTokenInfoByRefreshTokenCommand } from '../jwt/application/use-cases/GetTokenInfoByRefreshToken';
+import { RefreshTokenByRefreshCommand } from './application/use-cases/RefreshTokenByRefresh';
+import { LogoutUserCommand } from './application/use-cases/LogoutUser';
 
 @Injectable()
 @Controller('auth')
@@ -80,22 +84,10 @@ export class AuthController {
     @Ip() ip: string,
     @Cookies('refreshToken') refreshToken: string,
   ) {
-    console.log('refresh token place');
-    const currentUserInfo = await this.commandBus.execute(
-      new GetTokenInfoByRefreshTokenCommand(refreshToken),
-    );
-    if (currentUserInfo.data === null) mappingErrorStatus(currentUserInfo);
-    const currentUserId: string = currentUserInfo.data.userId;
-    const currentDeviceId: string = currentUserInfo.data.deviceId;
     const tokens = await this.commandBus.execute(
-      new AddDeviceInfoToDBCommand(
-        new Types.ObjectId(currentUserId),
-        currentDeviceId,
-        ip,
-        currentDeviceId,
-      ),
+      new RefreshTokenByRefreshCommand(refreshToken, userAgent, ip),
     );
-    console.log('second refresh token');
+    if (tokens.data === null) mappingErrorStatus(tokens);
     res
       .cookie('refreshToken', tokens.data.refreshToken, {
         httpOnly: true,
@@ -103,27 +95,31 @@ export class AuthController {
       })
       .header('accessToken', tokens.data.accessToken)
       .status(200)
-      .send(tokens.data.accessToken);
+      .send({ accessToken: tokens.data.accessToken });
   }
 
   @Post('/logout')
   @HttpCode(204)
   async logoutUser(
-    @Res() res: Response,
+    @Res({ passthrough: true }) res: Response,
     @Cookies('refreshToken') refreshToken: string,
   ) {
     //убрать лишнюю инфу в базе данных ( обнулить дату создания )
-    const currentUserInfo = await this.commandBus.execute(
-      new GetTokenInfoByRefreshTokenCommand(refreshToken),
+    const result = await this.commandBus.execute(
+      new LogoutUserCommand(refreshToken),
     );
-    if (!currentUserInfo.data) return mappingErrorStatus(currentUserInfo);
-    const currentUserId: string = currentUserInfo.data.userId;
-    const currentDeviceId: string = currentUserInfo.data.deviceId;
-    await this.deviceRepository.updateIssuedDate(
-      currentUserId,
-      currentDeviceId,
-    );
-    return res.clearCookie('refreshToken');
+    if (result.data == null) mappingErrorStatus(result);
+    // const currentUserInfo = await this.commandBus.execute(
+    //   new GetTokenInfoByRefreshTokenCommand(refreshToken),
+    // );
+    // if (!currentUserInfo.data) return mappingErrorStatus(currentUserInfo);
+    // const currentUserId: string = currentUserInfo.data.userId;
+    // const currentDeviceId: string = currentUserInfo.data.deviceId;
+    // await this.deviceRepository.updateIssuedDate(
+    //   currentUserId,
+    //   currentDeviceId,
+    // );
+    res.clearCookie('refreshToken');
   }
 
   @Get('/me')

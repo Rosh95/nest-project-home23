@@ -1,10 +1,13 @@
 import { FilterQuery, Model } from 'mongoose';
-import { NewUsersDBType } from '../users/user.types';
 import { ObjectId } from 'mongodb';
 import { Device, DeviceDBModel, DeviceDocument } from '../devices/device.types';
 import { InjectModel } from '@nestjs/mongoose';
 import { RecoveryCode, RecoveryCodeDocument } from './auth.schema';
 import { User, UserDocument } from '../users/user.schema';
+import {
+  TokensBlackList,
+  TokensBlackListDocument,
+} from './schemas/TokensBlackListSchema';
 
 export class AuthRepository {
   constructor(
@@ -13,68 +16,9 @@ export class AuthRepository {
     public recoveryCodeModel: Model<RecoveryCodeDocument>,
     @InjectModel(Device.name)
     public deviceModel: Model<DeviceDocument>,
+    @InjectModel(TokensBlackList.name)
+    public tokensBlackListModel: Model<TokensBlackListDocument>,
   ) {}
-
-  async getAllUsers() {
-    return this.userModel.find().sort({ createdAt: -1 }).lean();
-  }
-  async deleteUser(id: ObjectId): Promise<boolean> {
-    const result = await this.userModel.deleteOne({ _id: id });
-    return result.deletedCount === 1;
-  }
-
-  async findUserById(userId: string): Promise<NewUsersDBType | null> {
-    const foundUser: NewUsersDBType | null = await this.userModel.findOne({
-      _id: new ObjectId(userId),
-    });
-    if (foundUser) {
-      return foundUser;
-    } else {
-      return null;
-    }
-  }
-
-  async findUserByLogin(login: string): Promise<NewUsersDBType | null> {
-    const foundUser = await this.userModel.findOne({
-      'accountData.login': login,
-    });
-    if (foundUser) {
-      return foundUser;
-    } else {
-      return null;
-    }
-  }
-
-  async findUserByEmail(email: string): Promise<NewUsersDBType | null> {
-    const foundUser = await this.userModel.findOne({
-      'accountData.email': email,
-    });
-    if (foundUser) {
-      return foundUser;
-    } else {
-      return null;
-    }
-  }
-
-  async findUserByCode(code: string): Promise<NewUsersDBType | null> {
-    const foundUser = await this.userModel.findOne({
-      'emailConfirmation.confirmationCode': code,
-    });
-    if (foundUser) {
-      return foundUser;
-    } else {
-      return null;
-    }
-  }
-
-  async findLoginOrEmail(loginOrEmail: string): Promise<NewUsersDBType | null> {
-    return this.userModel.findOne({
-      $or: [
-        { 'accountData.email': loginOrEmail },
-        { 'accountData.login': loginOrEmail },
-      ],
-    });
-  }
 
   async updateEmailConfimation(userId: ObjectId): Promise<boolean> {
     const result = await this.userModel.updateOne(
@@ -131,6 +75,14 @@ export class AuthRepository {
   async findEmailByRecoveryCode(recoveryCode: string): Promise<string | null> {
     const result = await this.recoveryCodeModel.findOne({ recoveryCode });
     return result ? result.email : null;
+  }
+
+  async addTokenInBlackList(token: string) {
+    return this.tokensBlackListModel.insertMany({ token: token });
+  }
+
+  async findTokenInBlackList(token: string) {
+    return this.tokensBlackListModel.findOne({ token: token });
   }
 
   async createOrUpdateRefreshToken(

@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsString, Length } from 'class-validator';
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export type LoginSuccessViewModel = {
   accessToken: string;
@@ -46,7 +47,12 @@ export class newPasswordWithRecoveryCodeDto {
   @Length(1)
   newRecoveryCode: string;
 }
-
+export const Cookies = createParamDecorator(
+  (data: string, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    return data ? request.cookies?.[data] : request.cookies;
+  },
+);
 // export const LoginAttemptSchema = new mongoose.Schema<LoginAttemptDBModel>({
 //   ip: { type: String, require: true },
 //   url: { type: String, require: true },

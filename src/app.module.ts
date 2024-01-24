@@ -89,6 +89,12 @@ import { BlogExistsRule } from './posts/post.types';
 import { EmailExistsRule, LoginExistsRule } from './users/user.types';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import {
+  TokensBlackList,
+  TokensBlackListSchema,
+} from './auth/schemas/TokensBlackListSchema';
+import { LogoutUser } from './auth/application/use-cases/LogoutUser';
+import { RefreshTokenByRefresh } from './auth/application/use-cases/RefreshTokenByRefresh';
 
 const providers = [
   AppService,
@@ -159,6 +165,8 @@ const useCases = [
   ChangeUserConfirmationCode,
   AddRecoveryCodeAndEmail,
   AddDeviceInfoToDB,
+  LogoutUser,
+  RefreshTokenByRefresh,
 ];
 
 @Module({
@@ -186,6 +194,7 @@ const useCases = [
       { name: User.name, schema: UsersSchema },
       { name: Device.name, schema: DeviceSchema },
       { name: Comment.name, schema: CommentsSchema },
+      { name: TokensBlackList.name, schema: TokensBlackListSchema },
     ]),
   ],
   controllers: [
