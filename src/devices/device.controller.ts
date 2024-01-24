@@ -6,6 +6,7 @@ import {
   Injectable,
   NotFoundException,
   Param,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '../jwt/jwt.service';
 import { DeviceQueryRepository } from './deviceQuery.repository';
@@ -60,7 +61,7 @@ export class DeviceController {
       new DeleteOtherUserDeviceCommand(currentUserId, currentDeviceId),
     );
     if (!isDeleted) {
-      throw new NotFoundException();
+      throw new UnauthorizedException();
     }
     return true;
   }
@@ -71,9 +72,6 @@ export class DeviceController {
     @Param('deviceId') deviceId: string,
     @Cookies('refreshToken') refreshToken: string,
   ) {
-    // if (!deviceId) {
-    //   throw new NotFoundException();
-    // }
     const currentUserInfo = await this.commandBus.execute(
       new GetTokenInfoByRefreshTokenCommand(refreshToken),
     );
@@ -83,7 +81,8 @@ export class DeviceController {
     const result = await this.commandBus.execute(
       new DeleteUserDeviceByIdCommand(currentUserInfo.data, deviceId),
     );
-    if ((result.data = null)) mappingErrorStatus(result);
+
+    if (result.data === null) mappingErrorStatus(result);
 
     return true;
   }

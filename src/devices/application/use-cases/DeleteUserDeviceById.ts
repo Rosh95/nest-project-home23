@@ -32,6 +32,7 @@ export class DeleteUserDeviceById
         data: null,
         resultCode: ResultCode.NotFound,
         message: 'user not found',
+        field: 'refreshToken',
       };
     }
 
