@@ -14,7 +14,7 @@ export class CreateJWT implements ICommandHandler<CreateJWTCommand> {
 
   async execute(command: CreateJWTCommand): Promise<LoginSuccessViewModel> {
     const token = jwt.sign({ userId: command.userId }, settings.JWT_SECRET, {
-      expiresIn: '10s',
+      expiresIn: '1000s',
     });
     return {
       accessToken: token,

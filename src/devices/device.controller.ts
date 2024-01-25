@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   Injectable,
-  NotFoundException,
   Param,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -18,7 +17,9 @@ import { DeleteUserDeviceByIdCommand } from './application/use-cases/DeleteUserD
 import { GetUserIdByRefreshTokenCommand } from '../jwt/application/use-cases/GetUserIdByRefreshToken';
 import { GetTokenInfoByRefreshTokenCommand } from '../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 import { Cookies } from '../auth/decorators/auth.decorator';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Injectable()
 @Controller('security/devices')
 export class DeviceController {
@@ -34,16 +35,13 @@ export class DeviceController {
     const currentUserId = await this.commandBus.execute(
       new GetUserIdByRefreshTokenCommand(refreshToken),
     );
-    if (currentUserId) {
-      try {
-        return await this.deviceQueryRepository.getAllDeviceSessions(
-          currentUserId.toString(),
-        );
-      } catch (e) {
-        throw new NotFoundException();
-      }
-    }
-    throw new NotFoundException();
+    if (currentUserId.data === null) mappingErrorStatus(currentUserId);
+
+    const result = await this.deviceQueryRepository.getAllDeviceSessions(
+      currentUserId.data.toString(),
+    );
+
+    return result;
   }
 
   @Delete()
