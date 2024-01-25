@@ -31,7 +31,7 @@ export class GetUserIdByRefreshToken
     }
     return {
       data: new Types.ObjectId(result.userId),
-      resultCode: ResultCode.Unauthorized,
+      resultCode: ResultCode.Success,
       field: 'refreshToken',
     };
   }
