@@ -36,13 +36,13 @@ export class DeleteUserDeviceById
       };
     }
 
-    if (command.currentDeviceId === command.currentUserInfo.deviceId) {
-      return {
-        data: null,
-        resultCode: ResultCode.BadRequest,
-        message: 'cant delete current device',
-      };
-    }
+    // if (command.currentDeviceId === command.currentUserInfo.deviceId) {
+    //   return {
+    //     data: null,
+    //     resultCode: ResultCode.BadRequest,
+    //     message: 'cant delete current device',
+    //   };
+    // }
     if (findUserIdByDeviceId !== command.currentUserInfo.userId) {
       return {
         data: null,

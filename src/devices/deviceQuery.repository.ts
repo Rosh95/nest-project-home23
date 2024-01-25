@@ -35,6 +35,19 @@ export class DeviceQueryRepository {
     }
     return null;
   }
+  async findSessionByDeviceIdAndUserId(
+    deviceId: string,
+    userId: string,
+  ): Promise<string | null> {
+    const foundDeviceInfo = await this.deviceModel.findOne({
+      deviceId: deviceId,
+      userId: userId,
+    });
+    if (foundDeviceInfo) {
+      return foundDeviceInfo.userId;
+    }
+    return null;
+  }
 
   private getSessionsMapping(device: DeviceDBModel): DeviceViewModel {
     return {

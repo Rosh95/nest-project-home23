@@ -1,17 +1,18 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UserRepository } from '../../../users/user.repository';
 import { UsersQueryRepository } from '../../../users/usersQuery.repository';
-import { AuthService } from '../../auth.service';
 import { AuthRepository } from '../../auth.repository';
-import { JwtService } from '../../../jwt/jwt.service';
 import { Types } from 'mongoose';
-import { ResultCode, ResultObject } from '../../../helpers/heplersType';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  mappingErrorStatus,
+  ResultCode,
+  ResultObject,
+} from '../../../helpers/heplersType';
 import { DeviceDBModel } from '../../../devices/device.types';
 import { CreateJWTCommand } from '../../../jwt/application/use-cases/CreateJWT';
 import { CreateRefreshJWTCommand } from '../../../jwt/application/use-cases/CreateRefreshJWT';
 import { GetTokenInfoByRefreshTokenCommand } from '../../../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 import { UserAndDeviceTypeFromRefreshToken } from '../../../jwt/jwt.types';
+import { DeviceQueryRepository } from '../../../devices/deviceQuery.repository';
 
 export class RefreshTokenByRefreshCommand {
   constructor(
@@ -26,11 +27,9 @@ export class RefreshTokenByRefresh
   implements ICommandHandler<RefreshTokenByRefreshCommand>
 {
   constructor(
-    public userRepository: UserRepository,
-    public authService: AuthService,
     public authRepository: AuthRepository,
-    public jwtService: JwtService,
     public usersQueryRepository: UsersQueryRepository,
+    public deviceQueryRepository: DeviceQueryRepository,
     private commandBus: CommandBus,
   ) {}
 
@@ -49,17 +48,28 @@ export class RefreshTokenByRefresh
       await this.commandBus.execute(
         new GetTokenInfoByRefreshTokenCommand(command.refreshToken),
       );
-    if (currentUserInfo.data === null)
+    if (currentUserInfo.data === null) mappingErrorStatus(currentUserInfo);
+    // return {
+    //   data: null,
+    //   resultCode: ResultCode.Unauthorized,
+    //   message: 'couldn`t get refreshToken',
+    // };
+    const currentUserId: string = currentUserInfo.data!.userId;
+    const currentDeviceId: string = currentUserInfo.data!.deviceId;
+
+    const isActualSession =
+      await this.deviceQueryRepository.findSessionByDeviceIdAndUserId(
+        currentDeviceId,
+        currentUserId,
+      );
+
+    if (!isActualSession) {
       return {
         data: null,
         resultCode: ResultCode.Unauthorized,
-        message: 'couldn`t get refreshToken',
+        message: 'couldn`t session, please refresh your refreshToken',
       };
-    const currentUserId: string = currentUserInfo.data.userId;
-    const currentDeviceId: string = currentUserInfo.data.deviceId
-      ? currentUserInfo.data.deviceId
-      : uuidv4();
-
+    }
     const accessToken = await this.commandBus.execute(
       new CreateJWTCommand(new Types.ObjectId(currentUserId)),
     );

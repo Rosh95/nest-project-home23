@@ -23,6 +23,15 @@ export class DeviceRepository {
     const result = await this.deviceModel.deleteOne({ deviceId: deviceId });
     return result.deletedCount === 1;
   }
+  async deleteCurrentUserDevice(
+    userId: string,
+    currentDeviceId: string,
+  ): Promise<boolean> {
+    const result = await this.deviceModel.deleteMany({
+      $and: [{ userId: userId }, { deviceId: currentDeviceId }],
+    });
+    return result.deletedCount >= 1;
+  }
 
   async updateIssuedDate(userId: string, deviceId: string): Promise<boolean> {
     const result = await this.deviceModel.updateOne(

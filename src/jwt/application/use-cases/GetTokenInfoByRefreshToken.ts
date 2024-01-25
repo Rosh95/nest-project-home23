@@ -38,7 +38,6 @@ export class GetTokenInfoByRefreshToken
     const currentUser = await this.usersQueryRepository.findUserById(
       result.userId,
     );
-
     if (!currentUser) {
       return {
         data: null,
@@ -46,6 +45,19 @@ export class GetTokenInfoByRefreshToken
         message: 'couldn`t find user',
       };
     }
+    // const isActualSession =
+    //   await this.deviceQueryRepository.findSessionByDeviceIdAndUserId(
+    //     result.deviceId,
+    //     result.userId,
+    //   );
+    //
+    // if (!isActualSession) {
+    //   return {
+    //     data: null,
+    //     resultCode: ResultCode.Unauthorized,
+    //     message: 'couldn`t session, please refresh your refreshToken',
+    //   };
+    // }
     return {
       data: result,
       resultCode: ResultCode.NoContent,

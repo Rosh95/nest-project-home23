@@ -66,7 +66,7 @@ export class DeviceController {
 
   @Delete(':deviceId')
   @HttpCode(204)
-  async deleteDeviceByid(
+  async deleteDeviceById(
     @Param('deviceId') deviceId: string,
     @Cookies('refreshToken') refreshToken: string,
   ) {

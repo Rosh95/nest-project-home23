@@ -1,13 +1,11 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UserRepository } from '../../../users/user.repository';
 import { UsersQueryRepository } from '../../../users/usersQuery.repository';
-import { AuthService } from '../../auth.service';
 import { AuthRepository } from '../../auth.repository';
-import { JwtService } from '../../../jwt/jwt.service';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { GetTokenInfoByRefreshTokenCommand } from '../../../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 import { UserAndDeviceTypeFromRefreshToken } from '../../../jwt/jwt.types';
 import { DeviceRepository } from '../../../devices/device.repository';
+import { DeviceQueryRepository } from '../../../devices/deviceQuery.repository';
 
 export class LogoutUserCommand {
   constructor(public refreshToken: string) {}
@@ -16,12 +14,10 @@ export class LogoutUserCommand {
 @CommandHandler(LogoutUserCommand)
 export class LogoutUser implements ICommandHandler<LogoutUserCommand> {
   constructor(
-    public userRepository: UserRepository,
-    public authService: AuthService,
     public authRepository: AuthRepository,
-    public jwtService: JwtService,
     public usersQueryRepository: UsersQueryRepository,
     public deviceRepository: DeviceRepository,
+    public deviceQueryRepository: DeviceQueryRepository,
     private commandBus: CommandBus,
   ) {}
 
@@ -46,7 +42,24 @@ export class LogoutUser implements ICommandHandler<LogoutUserCommand> {
       };
     const currentUserId: string = currentUserInfo.data.userId;
     const currentDeviceId: string = currentUserInfo.data.deviceId;
-    const result = await this.deviceRepository.updateIssuedDate(
+    // const result = await this.deviceRepository.updateIssuedDate(
+    //   currentUserId,
+    //   currentDeviceId,
+    // );
+    const isActualSession =
+      await this.deviceQueryRepository.findSessionByDeviceIdAndUserId(
+        currentDeviceId,
+        currentUserId,
+      );
+
+    if (!isActualSession) {
+      return {
+        data: null,
+        resultCode: ResultCode.Unauthorized,
+        message: 'couldn`t session, please refresh your refreshToken',
+      };
+    }
+    const result = await this.deviceRepository.deleteCurrentUserDevice(
       currentUserId,
       currentDeviceId,
     );
@@ -54,9 +67,13 @@ export class LogoutUser implements ICommandHandler<LogoutUserCommand> {
       return {
         data: null,
         resultCode: ResultCode.Unauthorized,
-        message: 'couldn`t update device info',
+        message: 'couldn`t delete device info',
       };
     }
+    // await this.deviceRepository.deleteCurrentUserDevice(
+    //   currentUserId,
+    //   currentDeviceId,
+    // );
     await this.authRepository.addTokenInBlackList(command.refreshToken);
 
     return {
