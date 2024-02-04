@@ -93,7 +93,6 @@ export class AuthRepository {
       deviceId: refreshTokenInfo.deviceId,
     };
     const findUserInRefreshCollection = await this.deviceModel.findOne(filter);
-    console.log(findUserInRefreshCollection);
 
     if (findUserInRefreshCollection) {
       const newRefreshToken = await this.deviceModel.updateOne(filter, {
@@ -104,13 +103,10 @@ export class AuthRepository {
           deviceName: refreshTokenInfo.deviceName,
         },
       });
-      console.log(newRefreshToken.matchedCount === 1);
       return newRefreshToken.matchedCount === 1;
     }
     try {
-      const result = await this.deviceModel.create(refreshTokenInfo);
-      console.log(result._id);
-      console.log('result');
+      await this.deviceModel.create(refreshTokenInfo);
       return true;
     } catch (e) {
       return false;

@@ -60,8 +60,7 @@ export class AddDeviceInfoToDB
     };
     const isCreated =
       await this.authRepository.createOrUpdateRefreshToken(result);
-    console.log(isCreated);
-    console.log('isCreated');
+
     if (!isCreated) {
       return {
         data: null,
