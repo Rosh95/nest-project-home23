@@ -7,9 +7,7 @@ import {
   Param,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '../jwt/jwt.service';
 import { DeviceQueryRepository } from './deviceQuery.repository';
-import { DeviceService } from './device.service';
 import { mappingErrorStatus } from '../helpers/heplersType';
 import { CommandBus } from '@nestjs/cqrs';
 import { DeleteOtherUserDeviceCommand } from './application/use-cases/DeleteOtherUserDevice';
@@ -24,9 +22,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 @Controller('security/devices')
 export class DeviceController {
   constructor(
-    public deviceService: DeviceService,
     public deviceQueryRepository: DeviceQueryRepository,
-    public jwtService: JwtService,
     private commandBus: CommandBus,
   ) {}
 

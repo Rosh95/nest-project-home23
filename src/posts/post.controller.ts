@@ -47,8 +47,10 @@ import { CreatePostCommand } from './application/use-cases/CreatePost';
 import { UpdatePostCommand } from './application/use-cases/UpdatePost';
 import { UpdatePostLikeStatusByIdCommand } from './application/use-cases/UpdatePostLikeStatusById';
 import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @Injectable()
+@SkipThrottle()
 @Controller('posts')
 export class PostController {
   constructor(

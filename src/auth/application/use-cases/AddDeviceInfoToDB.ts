@@ -1,9 +1,7 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UserRepository } from '../../../users/user.repository';
 import { UsersQueryRepository } from '../../../users/usersQuery.repository';
-import { AuthService } from '../../auth.service';
 import { AuthRepository } from '../../auth.repository';
-import { JwtService } from '../../../jwt/jwt.service';
 import { Types } from 'mongoose';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,9 +25,7 @@ export class AddDeviceInfoToDB
 {
   constructor(
     public userRepository: UserRepository,
-    public authService: AuthService,
     public authRepository: AuthRepository,
-    public jwtService: JwtService,
     public usersQueryRepository: UsersQueryRepository,
     private commandBus: CommandBus,
   ) {}
@@ -47,7 +43,7 @@ export class AddDeviceInfoToDB
       new GetTokenInfoByRefreshTokenCommand(refreshToken.refreshToken),
     );
 
-    if (!getInfoFromRefreshToken.data) {
+    if (getInfoFromRefreshToken.data === null) {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
@@ -64,6 +60,8 @@ export class AddDeviceInfoToDB
     };
     const isCreated =
       await this.authRepository.createOrUpdateRefreshToken(result);
+    console.log(isCreated);
+    console.log('isCreated');
     if (!isCreated) {
       return {
         data: null,

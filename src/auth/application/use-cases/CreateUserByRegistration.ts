@@ -4,11 +4,11 @@ import { ObjectId } from 'mongodb';
 import { CreateUserDto, NewUsersDBType } from '../../../users/user.types';
 import { v4 as uuidv4 } from 'uuid';
 import add from 'date-fns/add';
-import { emailAdapter } from '../../../email/email.adapter';
 import { UserRepository } from '../../../users/user.repository';
 import { UsersQueryRepository } from '../../../users/usersQuery.repository';
 import bcrypt from 'bcrypt';
 import { AuthService } from '../../auth.service';
+import { EmailService } from '../../../email/email.service';
 
 export class CreateUserByRegistrationCommand {
   constructor(public userPostInputData: CreateUserDto) {}
@@ -22,6 +22,7 @@ export class CreateUserByRegistration
     public userRepository: UserRepository,
     public usersQueryRepository: UsersQueryRepository,
     public authService: AuthService,
+    public emailService: EmailService,
   ) {}
 
   async execute(
@@ -86,7 +87,7 @@ export class CreateUserByRegistration
       await this.usersQueryRepository.findUserById(createdUserId);
     const createdUserFullInformation = this.authService.usersMapping(newUser);
     try {
-      await emailAdapter.sendConfirmationEmail(
+      await this.emailService.sendConfirmationEmail(
         createdUserFullInformation.emailConfirmation.confirmationCode,
         createdUser!.email,
       );

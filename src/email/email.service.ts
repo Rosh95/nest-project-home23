@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-export const emailAdapter = {
+export class EmailService {
   async sendConfirmationEmail(confirmationCode: string, email: string) {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -20,7 +20,7 @@ export const emailAdapter = {
  </p>`, // html body
     });
     return info;
-  },
+  }
 
   async sendRecoveryPasswordEmail(recoveryCode: string, email: string) {
     const transporter = nodemailer.createTransport({
@@ -41,5 +41,26 @@ export const emailAdapter = {
  </p>`, // html body
     });
     return info;
-  },
-};
+  }
+}
+
+export class EmailServiceMock implements EmailService {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
+  async sendConfirmationEmail(
+    confirmationCode: string,
+    email: string,
+  ): Promise<void> {
+    console.log(confirmationCode, email);
+    await Promise.resolve();
+  }
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
+  async sendRecoveryPasswordEmail(
+    recoveryCode: string,
+    email: string,
+  ): Promise<void> {
+    console.log(recoveryCode, email);
+    await Promise.resolve();
+  }
+}

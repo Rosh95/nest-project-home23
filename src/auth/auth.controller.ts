@@ -13,13 +13,8 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { JwtService } from '../jwt/jwt.service';
-import { DeviceRepository } from '../devices/device.repository';
-import { AuthService } from './auth.service';
 import { Response } from 'express';
-import { UsersService } from '../users/users.service';
 import { CreateUserDto, CurrentUserInfoType } from '../users/user.types';
-import { emailAdapter } from '../email/email.adapter';
 import { Types } from 'mongoose';
 import {
   mappingBadRequest,
@@ -44,16 +39,14 @@ import { AddDeviceInfoToDBCommand } from './application/use-cases/AddDeviceInfoT
 import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
 import { RefreshTokenByRefreshCommand } from './application/use-cases/RefreshTokenByRefresh';
 import { LogoutUserCommand } from './application/use-cases/LogoutUser';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 @Controller('auth')
 export class AuthController {
   constructor(
-    public authService: AuthService,
-    public jwtService: JwtService,
-    public deviceRepository: DeviceRepository,
-    public userService: UsersService,
     private commandBus: CommandBus,
+    public emailService: EmailService,
   ) {}
 
   @Post('/login')
@@ -65,10 +58,12 @@ export class AuthController {
     @Ip() ip: string,
     @UserId() userId: string,
   ) {
+    userAgent = userAgent ?? 'unknow';
     const tokensInfo = await this.commandBus.execute(
       new AddDeviceInfoToDBCommand(new Types.ObjectId(userId), userAgent, ip),
     );
     if (tokensInfo.data === null) return mappingErrorStatus(tokensInfo);
+
     res.cookie('refreshToken', tokensInfo.data.refreshToken, {
       httpOnly: true,
       secure: true,
@@ -171,7 +166,7 @@ export class AuthController {
       return mappingErrorStatus(newUserConfirmationCode);
 
     try {
-      await emailAdapter.sendConfirmationEmail(
+      await this.emailService.sendConfirmationEmail(
         newUserConfirmationCode.data,
         email,
       );
@@ -189,7 +184,10 @@ export class AuthController {
     );
     if (recoveryCode.data === null) return mappingErrorStatus(recoveryCode);
     try {
-      await emailAdapter.sendRecoveryPasswordEmail(recoveryCode.data, email);
+      await this.emailService.sendRecoveryPasswordEmail(
+        recoveryCode.data,
+        email,
+      );
       return true;
     } catch (e) {
       throw new BadRequestException(e.message);

@@ -34,6 +34,8 @@ export class GetTokenInfoByRefreshToken
         message: 'something wrong with refresh token',
       };
     }
+    console.log(result);
+    console.log('result');
 
     const currentUser = await this.usersQueryRepository.findUserById(
       result.userId,
@@ -45,6 +47,8 @@ export class GetTokenInfoByRefreshToken
         message: 'couldn`t find user',
       };
     }
+    console.log(currentUser);
+    console.log('currentUser');
     // const isActualSession =
     //   await this.deviceQueryRepository.findSessionByDeviceIdAndUserId(
     //     result.deviceId,

@@ -10,7 +10,6 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
 import { newPaginatorViewType, queryDataType } from '../helpers/helpers';
 import { CreateUserDto, getUserViewModel } from './user.types';
 import { UsersQueryRepository } from './usersQuery.repository';
@@ -27,7 +26,6 @@ import { DeleteUserCommand } from './application/use-cases/DeleteUser';
 @Controller('users')
 export class UsersController {
   constructor(
-    public userService: UsersService,
     public usersQueryRepository: UsersQueryRepository,
     private commandBus: CommandBus,
   ) {}
@@ -37,6 +35,7 @@ export class UsersController {
   async getUsers(@QueryData() queryData: queryDataType) {
     const allUsers: newPaginatorViewType<getUserViewModel> =
       await this.usersQueryRepository.getAllUsers(queryData);
+
     return allUsers;
   }
 

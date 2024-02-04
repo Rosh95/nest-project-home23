@@ -60,7 +60,11 @@ export type postInputDataModel = {
   content: string;
   blogId: string;
 };
-
+export type postInputDataModelForExistingBlog = {
+  title: string;
+  shortDescription: string;
+  content: string;
+};
 export type PaginatorPostViewType = {
   pagesCount: number;
   page: number;

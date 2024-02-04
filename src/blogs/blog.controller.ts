@@ -39,8 +39,10 @@ import { CreateBlogCommand } from './application/use-cases/CreateBlog';
 import { DeleteBlogCommand } from './application/use-cases/DeleteBlog';
 import { UpdateBlogCommand } from './application/use-cases/UpdateBlog';
 import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @Injectable()
+@SkipThrottle()
 @Controller('blogs')
 export class BlogController {
   constructor(

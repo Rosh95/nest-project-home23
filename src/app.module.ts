@@ -1,3 +1,5 @@
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { settings } from './settings';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -5,10 +7,6 @@ import { UsersController } from './users/users.controller';
 import { UsersService } from './users/users.service';
 import { UserRepository } from './users/user.repository';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Cat, CatSchema } from './cats/cats-shema';
-import { CatsRepository } from './cats/cats.repository';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { getMongoUri } from './getMongoUri';
 import { PostController } from './posts/post.controller';
 import { AuthController } from './auth/auth.controller';
 import { BlogController } from './blogs/blog.controller';
@@ -32,7 +30,6 @@ import { PostRepository } from './posts/post.repository';
 import { JwtService } from './jwt/jwt.service';
 import { Helpers } from './helpers/helpers';
 import { LikeStatus, LikeStatusSchema } from './likeStatus/likeStatus.type';
-
 import { Device, DeviceSchema } from './devices/device.types';
 import { Blog, BlogSchema } from './blogs/blog.schema';
 import {
@@ -52,7 +49,6 @@ import { BasicAuthGuard } from './auth/guards/basic-auth.guard';
 import { JwtStrategy } from './auth/strategies/jwt.strategy';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { JwtModule } from '@nestjs/jwt';
-import { settings } from './settings';
 import { LocalAuthGuard } from './auth/guards/local-auth.guard';
 import { LocalStrategy } from './auth/strategies/local.strategy';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -95,13 +91,18 @@ import {
 } from './auth/schemas/TokensBlackListSchema';
 import { LogoutUser } from './auth/application/use-cases/LogoutUser';
 import { RefreshTokenByRefresh } from './auth/application/use-cases/RefreshTokenByRefresh';
+import { EmailService } from './email/email.service';
+
+const configModule = ConfigModule.forRoot({
+  isGlobal: true,
+  envFilePath: '.env',
+});
 
 const providers = [
   AppService,
   UsersService,
   UserRepository,
   UsersQueryRepository,
-  CatsRepository,
   AuthRepository,
   AuthService,
   BlogRepository,
@@ -130,6 +131,7 @@ const providers = [
   BlogExistsRule,
   LoginExistsRule,
   EmailExistsRule,
+  EmailService,
   {
     provide: APP_GUARD,
     useClass: ThrottlerGuard,
@@ -175,17 +177,16 @@ const useCases = [
     ThrottlerModule.forRoot([
       {
         ttl: 10000,
-        limit: 5,
+        limit: Number(settings().LIMIT_COUNT),
       },
     ]),
-    ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot(getMongoUri()),
+    configModule,
+    MongooseModule.forRoot(settings().MONGO_URL),
     JwtModule.register({
-      secret: settings.JWT_SECRET,
+      secret: settings().JWT_SECRET,
       signOptions: { expiresIn: '10m' },
     }),
     MongooseModule.forFeature([
-      { name: Cat.name, schema: CatSchema },
       { name: Blog.name, schema: BlogSchema },
       { name: Post.name, schema: PostSchema },
       { name: LikeStatus.name, schema: LikeStatusSchema },
