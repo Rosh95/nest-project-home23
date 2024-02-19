@@ -8,7 +8,6 @@ import { ResultCode } from '../../helpers/heplersType';
 import { appSettings } from '../../appSettings';
 import { DbMongooseModule } from '../../modules/DbMongooseModule';
 import { DbMongooseTestingMemoryModule } from '../../modules/DbMongooseTestingMemoryModule';
-import { UserRepository } from '../../users/user.repository';
 
 jest.setTimeout(95000);
 

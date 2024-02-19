@@ -20,8 +20,10 @@ import { CreateUserCommand } from './application/use-cases/CreateUser';
 import { DeleteUserCommand } from './application/use-cases/DeleteUser';
 import { UsersQuerySqlRepository } from './usersQuery.repository.sql';
 import { ParseStringPipe } from '../pipes/ParseObjectIdPipe';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @Injectable()
+@SkipThrottle()
 @Controller('sa/users')
 export class UsersSAController {
   constructor(

@@ -43,8 +43,6 @@ export class emailDto {
 }
 export class recoveryCodeDto {
   @IsNotEmpty()
-  @IsString()
-  @Length(1)
   code: string;
 }
 

@@ -149,7 +149,7 @@ export class AuthController {
 
   @Post('/registration-confirmation')
   @HttpCode(204)
-  async registrationConfirmation(@Body('code') { code }: recoveryCodeDto) {
+  async registrationConfirmation(@Body('code') code: string) {
     const result = await this.commandBus.execute(new ConfirmEmailCommand(code));
     if (!result.data) return mappingErrorStatus(result);
     return true;

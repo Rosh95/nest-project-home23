@@ -55,7 +55,7 @@ export class CreateUserByRegistration
       userId: createdUserId,
       confirmationCode: uuidv4(),
       emailExpiration: add(new Date(), {
-        hours: 1,
+        hours: 24,
         minutes: 3,
       }).toISOString(),
       isConfirmed: false,

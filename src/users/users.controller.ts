@@ -21,8 +21,10 @@ import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
 import { CommandBus } from '@nestjs/cqrs';
 import { CreateUserCommand } from './application/use-cases/CreateUser';
 import { DeleteUserCommand } from './application/use-cases/DeleteUser';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @Injectable()
+@SkipThrottle()
 @Controller('users')
 export class UsersController {
   constructor(

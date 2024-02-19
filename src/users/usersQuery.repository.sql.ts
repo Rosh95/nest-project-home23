@@ -54,7 +54,7 @@ export class UsersQuerySqlRepository {
       id: user.id,
       login: user.login,
       email: user.email,
-      createdAt: user.createdAt.toString(),
+      createdAt: user.createdAt,
     };
   }
   private async countTotalUsersAndPages(queryData: queryDataType) {

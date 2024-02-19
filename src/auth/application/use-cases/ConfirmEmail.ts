@@ -25,8 +25,8 @@ export class ConfirmEmail implements ICommandHandler<ConfirmEmailCommand> {
       };
     }
     if (foundUser.emailExpiration.getTime() < new Date().getTime()) {
-      console.log(foundUser.emailExpiration.getTime());
-      console.log(new Date().getTime());
+      console.log(foundUser.emailExpiration.getTime() + 'emailExpiration');
+      console.log(new Date().getTime() + 'now time');
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
