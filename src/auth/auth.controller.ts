@@ -15,18 +15,17 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { CreateUserDto, CurrentUserInfoType } from '../users/user.types';
-import { Types } from 'mongoose';
 import {
   mappingBadRequest,
   mappingErrorStatus,
   ResultObject,
 } from '../helpers/heplersType';
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
-import { LocalAuthGuard } from './guards/local-auth.guard';
 import {
   Cookies,
   emailDto,
   newPasswordWithRecoveryCodeDto,
+  recoveryCodeDto,
 } from './auth.types';
 import { CommandBus } from '@nestjs/cqrs';
 import { FindUserByIdCommand } from '../users/application/use-cases/FindUserById';
@@ -40,6 +39,7 @@ import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetU
 import { RefreshTokenByRefreshCommand } from './application/use-cases/RefreshTokenByRefresh';
 import { LogoutUserCommand } from './application/use-cases/LogoutUser';
 import { EmailService } from '../email/email.service';
+import { LocalAuthGuard } from './guards/local-auth.guard';
 
 @Injectable()
 @Controller('auth')
@@ -60,15 +60,16 @@ export class AuthController {
   ) {
     userAgent = userAgent ?? 'unknow';
     const tokensInfo = await this.commandBus.execute(
-      new AddDeviceInfoToDBCommand(new Types.ObjectId(userId), userAgent, ip),
+      new AddDeviceInfoToDBCommand(userId, userAgent, ip),
     );
     if (tokensInfo.data === null) return mappingErrorStatus(tokensInfo);
 
-    res.cookie('refreshToken', tokensInfo.data.refreshToken, {
-      httpOnly: true,
-      secure: true,
-    });
-    res.header('accessToken', tokensInfo.data.accessToken.accessToken);
+    res
+      .cookie('refreshToken', tokensInfo.data.refreshToken, {
+        httpOnly: true,
+        secure: true,
+      })
+      .header('accessToken', tokensInfo.data.accessToken.accessToken);
     return { accessToken: tokensInfo.data.accessToken };
   }
 
@@ -124,13 +125,13 @@ export class AuthController {
     );
     if (!userId) throw new UnauthorizedException();
     const currentUser = await this.commandBus.execute(
-      new FindUserByIdCommand(userId.toString()),
+      new FindUserByIdCommand(userId),
     );
     if (!currentUser) throw new NotFoundException('couldn`t find user');
     const currentUserInfo: CurrentUserInfoType = {
-      login: currentUser.accountData.login,
-      email: currentUser.accountData.email,
-      userId: currentUser._id.toString(),
+      login: currentUser.login,
+      email: currentUser.email,
+      userId: currentUser.id,
     };
     return currentUserInfo;
   }
@@ -148,9 +149,7 @@ export class AuthController {
 
   @Post('/registration-confirmation')
   @HttpCode(204)
-  async registrationConfirmation(@Body('code') code: string) {
-    if (!code || code.toString().length === 0)
-      mappingBadRequest('code doesn`t exist', 'code');
+  async registrationConfirmation(@Body('code') { code }: recoveryCodeDto) {
     const result = await this.commandBus.execute(new ConfirmEmailCommand(code));
     if (!result.data) return mappingErrorStatus(result);
     return true;

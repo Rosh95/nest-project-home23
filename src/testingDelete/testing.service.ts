@@ -7,6 +7,6 @@ export class TestingService {
 
   async deletingAll() {
     await this.testingRepository.deleteAll();
-    return;
+    return true;
   }
 }

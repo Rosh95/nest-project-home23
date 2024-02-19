@@ -1,9 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import jwt from 'jsonwebtoken';
-import { settings } from '../../jwt.settings';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { Types } from 'mongoose';
-import { AuthRepository } from '../../../auth/auth.repository';
+import { settings } from '../../../settings';
+import { AuthSqlRepository } from '../../../auth/auth.repository.sql';
 
 export class GetUserIdByRefreshTokenCommand {
   constructor(public token: string) {}
@@ -13,7 +13,7 @@ export class GetUserIdByRefreshTokenCommand {
 export class GetUserIdByRefreshToken
   implements ICommandHandler<GetUserIdByRefreshTokenCommand>
 {
-  constructor(public authRepository: AuthRepository) {}
+  constructor(public authRepository: AuthSqlRepository) {}
 
   async execute(
     command: GetUserIdByRefreshTokenCommand,
@@ -29,7 +29,7 @@ export class GetUserIdByRefreshToken
 
     let result;
     try {
-      result = jwt.verify(command.token, settings.JWT_SECRET) as {
+      result = jwt.verify(command.token, settings().JWT_SECRET) as {
         userId: string;
       };
     } catch (error) {

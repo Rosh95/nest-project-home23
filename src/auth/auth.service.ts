@@ -4,15 +4,15 @@ import bcrypt from 'bcrypt';
 import { UserRepository } from '../users/user.repository';
 import { Injectable } from '@nestjs/common';
 import { NewUsersDBType, UserViewModel } from '../users/user.types';
-import { AuthRepository } from './auth.repository';
 import { JwtService } from '../jwt/jwt.service';
 import { UsersQueryRepository } from '../users/usersQuery.repository';
+import { AuthSqlRepository } from './auth.repository.sql';
 
 @Injectable()
 export class AuthService {
   constructor(
     public userRepository: UserRepository,
-    public authRepository: AuthRepository,
+    public authRepository: AuthSqlRepository,
     public jwtService: JwtService,
     public usersQueryRepository: UsersQueryRepository,
   ) {}

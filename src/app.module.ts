@@ -92,10 +92,18 @@ import {
 import { LogoutUser } from './auth/application/use-cases/LogoutUser';
 import { RefreshTokenByRefresh } from './auth/application/use-cases/RefreshTokenByRefresh';
 import { EmailService } from './email/email.service';
+import { DbMongooseModule } from './modules/DbMongooseModule';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersSAController } from './users/users.controller.sa';
+import { UsersQuerySqlRepository } from './users/usersQuery.repository.sql';
+import { UserSqlRepository } from './users/user.repository.sql';
+import { AuthSqlRepository } from './auth/auth.repository.sql';
+import { RecoveryCodesRepository } from './email/recoveryCodes.repository';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
   envFilePath: '.env',
+  load: [settings],
 });
 
 const providers = [
@@ -117,6 +125,10 @@ const providers = [
   PostService,
   PostQueryRepository,
   PostRepository,
+  UsersQuerySqlRepository,
+  UserSqlRepository,
+  AuthSqlRepository,
+  RecoveryCodesRepository,
   JwtService,
   Helpers,
   TestingService,
@@ -181,7 +193,7 @@ const useCases = [
       },
     ]),
     configModule,
-    MongooseModule.forRoot(settings().MONGO_URL),
+    DbMongooseModule,
     JwtModule.register({
       secret: settings().JWT_SECRET,
       signOptions: { expiresIn: '10m' },
@@ -197,10 +209,22 @@ const useCases = [
       { name: Comment.name, schema: CommentsSchema },
       { name: TokensBlackList.name, schema: TokensBlackListSchema },
     ]),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: settings().SQL_HOST,
+      port: 5432,
+      username: settings().SQL_USERNAME,
+      password: settings().SQL_PASSWORD,
+      database: settings().SQL_DATABASE,
+      ssl: true,
+      entities: [],
+      synchronize: false,
+    }),
   ],
   controllers: [
     AppController,
     UsersController,
+    UsersSAController,
     PostController,
     AuthController,
     BlogController,

@@ -10,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommentsQueryRepository } from './commentsQuery.repository';
-import { JwtService } from '../jwt/jwt.service';
 import { CommentsViewModel, LikeStatusOptionVariable } from './comments.types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
@@ -21,19 +20,20 @@ import { UpdateCommentByIdCommand } from './application/use-cases/UpdateCommentB
 import { mappingErrorStatus, ResultCode } from '../helpers/heplersType';
 import { UpdateCommentLikeStatusByIdCommand } from './application/use-cases/UpdateCommentLikeStatusById';
 import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
+import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
+import { Types } from 'mongoose';
 
 @Injectable()
 @Controller('comments')
 export class CommentsController {
   constructor(
     public commentQueryRepository: CommentsQueryRepository,
-    public jwtService: JwtService,
     private commandBus: CommandBus,
   ) {}
 
   @Get(':commentId')
   async getCommentById(
-    @Param('commentId') commentId: string,
+    @Param('commentId', new ParseObjectIdPipe()) commentId: Types.ObjectId,
     @AccessTokenHeader() accessToken: string,
   ) {
     const currentAccessToken = accessToken ? accessToken : null;
@@ -42,7 +42,10 @@ export class CommentsController {
     );
 
     const commentInfo: CommentsViewModel | null =
-      await this.commentQueryRepository.getCommentById(commentId, userId);
+      await this.commentQueryRepository.getCommentById(
+        commentId.toString(),
+        userId,
+      );
 
     return commentInfo
       ? commentInfo

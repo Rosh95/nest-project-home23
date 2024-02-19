@@ -1,7 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import jwt from 'jsonwebtoken';
-import { settings } from '../../jwt.settings';
-import { Types } from 'mongoose';
+import { settings } from '../../../settings';
 
 export class GetUserIdByAccessTokenCommand {
   constructor(public token: string | null) {}
@@ -15,17 +14,17 @@ export class GetUserIdByAccessToken
 
   async execute(
     command: GetUserIdByAccessTokenCommand,
-  ): Promise<Types.ObjectId | null> {
+  ): Promise<string | null> {
     if (!command.token) return null;
     let result;
     try {
-      result = jwt.verify(command.token, settings.JWT_SECRET) as {
+      result = jwt.verify(command.token, settings().JWT_SECRET) as {
         userId: string;
       };
     } catch (e) {
       return null;
     }
 
-    return new Types.ObjectId(result.userId);
+    return result.userId;
   }
 }

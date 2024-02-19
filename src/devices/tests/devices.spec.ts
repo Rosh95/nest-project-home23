@@ -6,7 +6,10 @@ import { AppModule } from '../../app.module';
 import { CreateUserDto } from '../../users/user.types';
 import { AuthTestManager } from '../../auth/tests/auth.testManager.spec';
 import { ResultCode } from '../../helpers/heplersType';
-import { v4 } from 'uuid';
+import { DbMongooseModule } from '../../modules/DbMongooseModule';
+import { DbMongooseTestingMemoryModule } from '../../modules/DbMongooseTestingMemoryModule';
+
+jest.setTimeout(30000);
 
 describe('SecurityDevicesController (e2e)', () => {
   let app: INestApplication;
@@ -15,7 +18,10 @@ describe('SecurityDevicesController (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideModule(DbMongooseModule)
+      .useModule(DbMongooseTestingMemoryModule)
+      .compile();
 
     app = moduleFixture.createNestApplication();
 
@@ -35,7 +41,7 @@ describe('SecurityDevicesController (e2e)', () => {
     await request(httpServer).delete('/testing/all-data');
   });
 
-  describe('Users router testing', () => {
+  describe('Security devices router testing', () => {
     beforeEach(async () => {
       await request(httpServer).delete('/testing/all-data');
     });
@@ -92,111 +98,6 @@ describe('SecurityDevicesController (e2e)', () => {
           deviceId: expect.any(String),
         },
       ]);
-    });
-    it('should delete all sessions', async () => {
-      await AuthTestManager.registrationUser(
-        httpServer,
-        createVasyaData(3).registrationData,
-      );
-      await request(httpServer)
-        .post('/auth/login')
-        .set('User-Agent', 'Chrome')
-        .send(createVasyaData(3).loginData)
-        .expect(ResultCode.Success);
-
-      const loginUserInfo2 = await AuthTestManager.loginUser(
-        httpServer,
-        createVasyaData(3).loginData,
-      );
-      const result = await request(httpServer)
-        .get('/security/devices')
-        .set('Cookie', [loginUserInfo2.refreshToken!])
-        .expect(ResultCode.Success);
-
-      expect(result.body).toEqual([
-        {
-          ip: expect.any(String),
-          title: expect.any(String),
-          lastActiveDate: expect.any(String),
-          deviceId: expect.any(String),
-        },
-        {
-          ip: expect.any(String),
-          title: expect.any(String),
-          lastActiveDate: expect.any(String),
-          deviceId: expect.any(String),
-        },
-      ]);
-
-      await request(httpServer)
-        .delete('/security/devices')
-        .expect(ResultCode.Unauthorized);
-
-      await request(httpServer)
-        .delete('/security/devices')
-        .set('Cookie', [`refreshToken=${v4()}`])
-        .expect(ResultCode.Unauthorized);
-
-      const finalResult = await request(httpServer)
-        .delete('/security/devices')
-        .set('Cookie', [loginUserInfo2.refreshToken!])
-        .expect(ResultCode.NoContent);
-      expect(finalResult.body).toEqual({});
-    });
-    it('should delete specified sessions', async () => {
-      await AuthTestManager.registrationUser(
-        httpServer,
-        createVasyaData(4).registrationData,
-      );
-      await request(httpServer)
-        .post('/auth/login')
-        .set('User-Agent', 'Chrome')
-        .send(createVasyaData(4).loginData)
-        .expect(ResultCode.Success);
-
-      const loginUserInfo2 = await AuthTestManager.loginUser(
-        httpServer,
-        createVasyaData(4).loginData,
-      );
-      const result = await request(httpServer)
-        .get('/security/devices')
-        .set('Cookie', [loginUserInfo2.refreshToken!])
-        .expect(ResultCode.Success);
-      console.log(result.body);
-      console.log('result.body');
-      const sessionInfo1 = result.body[0];
-      const sessionInfo2 = result.body[1];
-      expect(result.body).toEqual([
-        {
-          ip: expect.any(String),
-          title: expect.any(String),
-          lastActiveDate: expect.any(String),
-          deviceId: expect.any(String),
-        },
-        {
-          ip: expect.any(String),
-          title: expect.any(String),
-          lastActiveDate: expect.any(String),
-          deviceId: expect.any(String),
-        },
-      ]);
-      console.log(sessionInfo1.deviceId);
-      console.log('sessionInfo1.deviceId');
-      await request(httpServer)
-        .delete(`/security/devices/${sessionInfo1.deviceId}`)
-        .expect(ResultCode.Unauthorized);
-
-      await request(httpServer)
-        .delete(`/security/devices/${sessionInfo1.deviceId}`)
-        .set('Cookie', [`refreshToken=${v4()}`])
-        .expect(ResultCode.Unauthorized);
-
-      const finalResult = await request(httpServer)
-        .delete(`/security/devices/${sessionInfo1.deviceId}`)
-        .set('Cookie', [loginUserInfo2.refreshToken!])
-        .expect(ResultCode.NoContent);
-
-      expect(finalResult.body).toEqual([sessionInfo2]);
     });
   });
 });

@@ -1,11 +1,11 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UsersQueryRepository } from '../../../users/usersQuery.repository';
-import { AuthRepository } from '../../auth.repository';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { GetTokenInfoByRefreshTokenCommand } from '../../../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 import { UserAndDeviceTypeFromRefreshToken } from '../../../jwt/jwt.types';
 import { DeviceRepository } from '../../../devices/device.repository';
 import { DeviceQueryRepository } from '../../../devices/deviceQuery.repository';
+import { AuthSqlRepository } from '../../auth.repository.sql';
 
 export class LogoutUserCommand {
   constructor(public refreshToken: string) {}
@@ -14,7 +14,7 @@ export class LogoutUserCommand {
 @CommandHandler(LogoutUserCommand)
 export class LogoutUser implements ICommandHandler<LogoutUserCommand> {
   constructor(
-    public authRepository: AuthRepository,
+    public authRepository: AuthSqlRepository,
     public usersQueryRepository: UsersQueryRepository,
     public deviceRepository: DeviceRepository,
     public deviceQueryRepository: DeviceQueryRepository,

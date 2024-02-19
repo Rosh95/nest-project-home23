@@ -7,6 +7,7 @@ import { CreateUserDto } from '../user.types';
 import { ResultCode } from '../../helpers/heplersType';
 import { usersTestManager } from './users.testManager.spec';
 import { EmailService } from '../../email/email.service';
+import { v4 } from 'uuid';
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication;
@@ -65,18 +66,20 @@ describe('UsersController (e2e)', () => {
       password: '123456',
     };
     it('should return 200 and empty array users', async () => {
-      await request(httpServer).get('/users').expect(401);
+      await request(httpServer).get('/sa/users').expect(401);
       const resp = await request(httpServer)
-        .get('/users')
+        .get('/sa/users')
         .auth('admin', 'qwerty')
         .expect(ResultCode.Success);
 
       expect(resp.body.items).toEqual([]);
     });
     it('should post user and get it ', async () => {
-      await request(httpServer).post('/users').expect(ResultCode.Unauthorized);
+      await request(httpServer)
+        .post('/sa/users')
+        .expect(ResultCode.Unauthorized);
       const resp = await request(httpServer)
-        .post('/users')
+        .post('/sa/users')
         .auth('admin', 'qwerty')
         .send(userData1)
         .expect(ResultCode.Created);
@@ -88,48 +91,49 @@ describe('UsersController (e2e)', () => {
         createdAt: expect.any(String),
       });
       const response = await request(httpServer)
-        .get('/users')
+        .get('/sa/users')
         .auth('admin', 'qwerty')
         .expect(ResultCode.Success);
 
       expect(response.body.items).toEqual([resp.body]);
 
       const resp2 = await request(httpServer)
-        .post('/users')
+        .post('/sa/users')
         .auth('admin', 'qwerty')
         .send(userData2)
         .expect(ResultCode.Created);
       const response2 = await request(httpServer)
-        .get('/users')
+        .get('/sa/users')
         .auth('admin', 'qwerty')
         .expect(ResultCode.Success);
 
-      expect(response2.body.items).toEqual([resp2.body, resp.body]);
+      expect(response2.body.items).toEqual([resp.body, resp2.body]);
     });
     it('shouldn`t post user by inccorect data and get 400 ', async () => {
       await request(httpServer)
-        .post('/users')
+        .post('/sa/users')
         .auth('admin', 'qwerty')
         .send({ ...userData1, login: '' })
         .expect(ResultCode.BadRequest);
       await request(httpServer)
-        .post('/users')
+        .post('/sa/users')
         .auth('admin', 'qwerty')
         .send({ ...userData1, email: 777 })
         .expect(ResultCode.BadRequest);
       await request(httpServer)
-        .post('/users')
+        .post('/sa/users')
         .auth('admin', 'qwerty')
         .send({ ...userData1, password: 77 })
         .expect(ResultCode.BadRequest);
     });
     it('should delete user and get 404 if it`s not exist', async () => {
+      const randomUUID = v4();
       await request(httpServer)
-        .delete('/users/55')
+        .delete(`/sa/users/${randomUUID}`)
         .expect(ResultCode.Unauthorized);
 
       await request(httpServer)
-        .delete('/users/55')
+        .delete('/sa/users/55')
         .auth('admin', 'qwerty')
         .expect(ResultCode.NotFound);
 
@@ -138,13 +142,13 @@ describe('UsersController (e2e)', () => {
         userData1,
       );
       const deleteUser = await request(httpServer)
-        .delete(`/users/${createdUser.createdEntity.id}`)
+        .delete(`/sa/users/${createdUser.createdEntity.id}`)
         .auth('admin', 'qwerty')
         .expect(ResultCode.NoContent);
       expect(deleteUser).toBeTruthy();
 
       const response = await request(httpServer)
-        .get('/users')
+        .get('/sa/users')
         .auth('admin', 'qwerty')
         .expect(ResultCode.Success);
       expect(response.body.items).toEqual([]);

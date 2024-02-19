@@ -1,39 +1,38 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../app.module';
-import { appSettings } from '../../appSettings';
 import request from 'supertest';
 import { CreateUserDto } from '../../users/user.types';
 import { AuthTestManager } from './auth.testManager.spec';
-import { settings } from '../../settings';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ResultCode } from '../../helpers/heplersType';
+import { appSettings } from '../../appSettings';
+import { DbMongooseModule } from '../../modules/DbMongooseModule';
+import { DbMongooseTestingMemoryModule } from '../../modules/DbMongooseTestingMemoryModule';
+import { UserRepository } from '../../users/user.repository';
 
-describe('UsersController (e2e)', () => {
+jest.setTimeout(95000);
+
+describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let httpServer;
-  //TODO inject values to new UserRepository()
-  //const userRepository = new UserRepository().userModel;
 
   beforeAll(async () => {
-    const mongod = await MongoMemoryServer.create();
-
-    const uri = mongod.getUri();
-    settings().MONGO_URL = uri;
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideModule(MongooseModule.forRoot(settings().MONGO_URL))
-      .useModule(MongooseModule.forRoot(uri))
+      .overrideModule(DbMongooseModule)
+      .useModule(DbMongooseTestingMemoryModule)
       .compile();
 
     app = moduleFixture.createNestApplication();
+    //const userRepository = app.get<UserRepository>(UserRepository);
+    //    const UserModel = userRepository.userModel;
+
     appSettings(app);
 
     await app.init();
-    //TODO : поменять конфигурацию для лимитов, сетинг вставить згнаечния всем anv переменным монго юри тоже
     httpServer = app.getHttpServer();
+    await request(httpServer).delete('/testing/all-data');
   });
 
   afterAll(async () => {
@@ -47,9 +46,7 @@ describe('UsersController (e2e)', () => {
     beforeEach(async () => {
       await request(httpServer).delete('/testing/all-data');
     });
-    afterEach(async () => {
-      await request(httpServer).delete('/testing/all-data');
-    });
+
     const createVasyaData = (number: number) => {
       const registrationData: CreateUserDto = {
         login: `Vasya${number}`,
@@ -67,11 +64,12 @@ describe('UsersController (e2e)', () => {
     it('should registration user', async () => {
       await request(httpServer)
         .post('/auth/registration')
-        .send(createVasyaData(2).registrationData)
+        .send(createVasyaData(3).registrationData)
         .expect(ResultCode.NoContent);
+
       await request(httpServer)
         .post('/auth/registration')
-        .send(createVasyaData(2).registrationData)
+        .send(createVasyaData(3).registrationData)
         .expect(ResultCode.BadRequest);
 
       await request(httpServer)
@@ -102,18 +100,13 @@ describe('UsersController (e2e)', () => {
       const result = await request(httpServer)
         .post('/auth/refresh-token')
         .set('Cookie', [loginUserInfo.refreshToken!])
-        .set({ Authorization: `Bearer ${loginUserInfo.accessToken}` })
         .expect(200);
       expect(result.body.accessToken).toEqual(expect.any(String));
 
-      const loginUserInfo2 = await AuthTestManager.loginUser(
-        httpServer,
-        createVasyaData(2).loginData,
-      );
+      await AuthTestManager.loginUser(httpServer, createVasyaData(2).loginData);
       await request(httpServer)
         .post('/auth/refresh-token')
         .set('Cookie', [loginUserInfo.refreshToken!])
-        .set({ Authorization: `Bearer ${loginUserInfo2.accessToken}` })
         .expect(401);
 
       await request(httpServer).post('/auth/refresh-token').expect(401);
@@ -160,6 +153,23 @@ describe('UsersController (e2e)', () => {
         .post('/auth/refresh-token')
         .set('Cookie', [loginUserInfo.refreshToken!])
         .expect(ResultCode.Unauthorized);
+    });
+
+    it('should registration user2222222', async () => {
+      await request(httpServer)
+        .post('/auth/registration')
+        .send(createVasyaData(3).registrationData)
+        .expect(ResultCode.NoContent);
+
+      await request(httpServer)
+        .post('/auth/registration')
+        .send(createVasyaData(2555555555555).registrationData)
+        .expect(ResultCode.BadRequest);
+
+      await request(httpServer)
+        .post('/auth/registration')
+        .send(createVasyaData(3).registrationData)
+        .expect(ResultCode.BadRequest);
     });
   });
 });

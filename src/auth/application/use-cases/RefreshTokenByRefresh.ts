@@ -1,7 +1,4 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UsersQueryRepository } from '../../../users/usersQuery.repository';
-import { AuthRepository } from '../../auth.repository';
-import { Types } from 'mongoose';
 import {
   mappingErrorStatus,
   ResultCode,
@@ -13,6 +10,8 @@ import { CreateRefreshJWTCommand } from '../../../jwt/application/use-cases/Crea
 import { GetTokenInfoByRefreshTokenCommand } from '../../../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 import { UserAndDeviceTypeFromRefreshToken } from '../../../jwt/jwt.types';
 import { DeviceQueryRepository } from '../../../devices/deviceQuery.repository';
+import { UsersQuerySqlRepository } from '../../../users/usersQuery.repository.sql';
+import { AuthSqlRepository } from '../../auth.repository.sql';
 
 export class RefreshTokenByRefreshCommand {
   constructor(
@@ -27,8 +26,8 @@ export class RefreshTokenByRefresh
   implements ICommandHandler<RefreshTokenByRefreshCommand>
 {
   constructor(
-    public authRepository: AuthRepository,
-    public usersQueryRepository: UsersQueryRepository,
+    public authRepository: AuthSqlRepository,
+    public usersQueryRepository: UsersQuerySqlRepository,
     public deviceQueryRepository: DeviceQueryRepository,
     private commandBus: CommandBus,
   ) {}
@@ -71,13 +70,10 @@ export class RefreshTokenByRefresh
       };
     }
     const accessToken = await this.commandBus.execute(
-      new CreateJWTCommand(new Types.ObjectId(currentUserId)),
+      new CreateJWTCommand(currentUserId),
     );
     const refreshToken = await this.commandBus.execute(
-      new CreateRefreshJWTCommand(
-        new Types.ObjectId(currentUserId),
-        currentDeviceId,
-      ),
+      new CreateRefreshJWTCommand(currentUserId, currentDeviceId),
     );
 
     const getInfoFromRefreshToken = await this.commandBus.execute(

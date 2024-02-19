@@ -1,9 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UserRepository } from '../../../users/user.repository';
-import { UsersQueryRepository } from '../../../users/usersQuery.repository';
 import { AuthService } from '../../auth.service';
-import { AuthRepository } from '../../auth.repository';
-import { JwtService } from '../../../jwt/jwt.service';
+import { UserSqlRepository } from '../../../users/user.repository.sql';
+import { UsersQuerySqlRepository } from '../../../users/usersQuery.repository.sql';
 
 export class CheckCredentialCommand {
   constructor(
@@ -17,24 +15,22 @@ export class CheckCredential
   implements ICommandHandler<CheckCredentialCommand>
 {
   constructor(
-    public userRepository: UserRepository,
+    public userRepository: UserSqlRepository,
     public authService: AuthService,
-    public authRepository: AuthRepository,
-    public jwtService: JwtService,
-    public usersQueryRepository: UsersQueryRepository,
+    public usersQueryRepository: UsersQuerySqlRepository,
   ) {}
 
   async execute(command: CheckCredentialCommand) {
-    const user = await this.userRepository.findLoginOrEmail(
+    const user = await this.userRepository.findUserByLoginOrEmail(
       command.loginOrEmail,
     );
     if (!user) return false;
     const passwordHash = await this.authService._generateHash(
       command.password,
-      user.accountData.passwordSalt,
+      user.passwordSalt,
     );
-    if (user.accountData.passwordHash === passwordHash) {
-      return user._id;
+    if (user.passwordHash === passwordHash) {
+      return user.id;
     } else return false;
   }
 }

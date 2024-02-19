@@ -1,13 +1,10 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
-import { CreateUserDto, NewUsersDBType } from '../../user.types';
-import { v4 as uuidv4 } from 'uuid';
-import add from 'date-fns/add';
-import { UserRepository } from '../../user.repository';
+import { CreateUserDto } from '../../user.types';
 import { Helpers } from '../../../helpers/helpers';
 import bcrypt from 'bcrypt';
 import { UsersService } from '../../users.service';
-import { Types } from 'mongoose';
+import { UserSqlRepository } from '../../user.repository.sql';
 
 export class CreateUserCommand {
   constructor(public userPostInputData: CreateUserDto) {}
@@ -16,7 +13,7 @@ export class CreateUserCommand {
 @CommandHandler(CreateUserCommand)
 export class CreateUser implements ICommandHandler<CreateUserCommand> {
   constructor(
-    public userRepository: UserRepository,
+    public userRepository: UserSqlRepository,
     public helpers: Helpers,
     public usersService: UsersService,
   ) {}
@@ -31,23 +28,13 @@ export class CreateUser implements ICommandHandler<CreateUserCommand> {
       command.userPostInputData.password,
       passwordSalt,
     );
-
-    const newUser: NewUsersDBType = {
-      _id: new Types.ObjectId(),
-      accountData: {
-        login: command.userPostInputData.login,
-        email: command.userPostInputData.email,
-        passwordHash,
-        passwordSalt,
-        createdAt: new Date(),
-      },
-      emailConfirmation: {
-        confirmationCode: uuidv4(),
-        emailExpiration: add(new Date(), { hours: 2, minutes: 3 }),
-        isConfirmed: true,
-      },
+    const newUserToSql = {
+      login: command.userPostInputData.login,
+      email: command.userPostInputData.email,
+      passwordHash,
+      passwordSalt,
     };
-    const createUserId = await this.userRepository.createUser(newUser);
+    const createUserId = await this.userRepository.createUser(newUserToSql);
     if (!createUserId) {
       return {
         data: null,

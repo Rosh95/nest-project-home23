@@ -1,11 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UserRepository } from '../../../users/user.repository';
-import { AuthRepository } from '../../auth.repository';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { v4 as uuidv4 } from 'uuid';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { RecoveryCode, RecoveryCodeDocument } from '../../auth.schema';
+import { AuthSqlRepository } from '../../auth.repository.sql';
+import { UserSqlRepository } from '../../../users/user.repository.sql';
+import { RecoveryCodesRepository } from '../../../email/recoveryCodes.repository';
 
 export class AddRecoveryCodeAndEmailCommand {
   constructor(public email: string) {}
@@ -16,10 +14,9 @@ export class AddRecoveryCodeAndEmail
   implements ICommandHandler<AddRecoveryCodeAndEmailCommand>
 {
   constructor(
-    public userRepository: UserRepository,
-    public authRepository: AuthRepository,
-    @InjectModel(RecoveryCode.name)
-    public recoveryCodeModel: Model<RecoveryCodeDocument>,
+    public userRepository: UserSqlRepository,
+    public authRepository: AuthSqlRepository,
+    public recoveryCodesRepository: RecoveryCodesRepository,
   ) {}
 
   async execute(
@@ -37,17 +34,19 @@ export class AddRecoveryCodeAndEmail
       };
     }
     const isExistRecoveryCodeForCurrentEmail =
-      await this.recoveryCodeModel.findOne({
-        email: command.email,
-      });
+      await this.recoveryCodesRepository.findDataByRecoveryCode(recoveryCode);
+    // await this.recoveryCodeModel.findOne({
+    //   email: command.email,
+    // });
+
     let result;
     if (isExistRecoveryCodeForCurrentEmail) {
-      result = await this.authRepository.updateRecoveryCode(
+      result = await this.recoveryCodesRepository.updateDataForRecoveryCode(
         command.email,
         recoveryCode,
       );
     } else {
-      result = await this.authRepository.addRecoveryCodeAndEmail(
+      result = await this.recoveryCodesRepository.createDataForRecoveryCode(
         command.email,
         recoveryCode,
       );

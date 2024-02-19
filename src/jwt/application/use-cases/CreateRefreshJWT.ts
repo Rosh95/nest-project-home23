@@ -1,12 +1,11 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Types } from 'mongoose';
 import { LoginSuccessViewModelForRefresh } from '../../jwt.types';
 import jwt from 'jsonwebtoken';
-import { settings } from '../../jwt.settings';
+import { settings } from '../../../settings';
 
 export class CreateRefreshJWTCommand {
   constructor(
-    public userId: Types.ObjectId,
+    public userId: string,
     public deviceId: string,
   ) {}
 }
@@ -25,8 +24,8 @@ export class CreateRefreshJWT
         userId: command.userId,
         deviceId: command.deviceId,
       },
-      settings.JWT_SECRET,
-      { expiresIn: '20s' },
+      settings().JWT_SECRET,
+      { expiresIn: settings().REFRESH_JWT_LIFETIME },
     );
     return {
       refreshToken: token,

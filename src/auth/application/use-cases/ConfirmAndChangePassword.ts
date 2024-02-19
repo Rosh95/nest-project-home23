@@ -1,8 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { AuthService } from '../../auth.service';
-import { AuthRepository } from '../../auth.repository';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import bcrypt from 'bcrypt';
+import { AuthSqlRepository } from '../../auth.repository.sql';
+import { RecoveryCodesRepository } from '../../../email/recoveryCodes.repository';
 
 export class ConfirmAndChangePasswordCommand {
   constructor(
@@ -17,14 +18,18 @@ export class ConfirmAndChangePassword
 {
   constructor(
     public authService: AuthService,
-    public authRepository: AuthRepository,
+    public authRepository: AuthSqlRepository,
+    public recoveryCodesRepository: RecoveryCodesRepository,
   ) {}
 
   async execute(
     command: ConfirmAndChangePasswordCommand,
   ): Promise<ResultObject<string>> {
     const foundEmailByRecoveryCode =
-      await this.authRepository.findEmailByRecoveryCode(command.recoveryCode);
+      await this.recoveryCodesRepository.findDataByRecoveryCode(
+        command.recoveryCode,
+      );
+    //  await this.authRepository.findEmailByRecoveryCode(command.recoveryCode);
     if (!foundEmailByRecoveryCode) {
       return {
         data: null,
@@ -38,7 +43,7 @@ export class ConfirmAndChangePassword
       passwordSalt,
     );
     await this.authRepository.updateUserPassword(
-      foundEmailByRecoveryCode,
+      foundEmailByRecoveryCode.email,
       passwordHash,
       passwordSalt,
     );

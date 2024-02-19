@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { AuthRepository } from '../../auth.repository';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
-import { UserRepository } from '../../../users/user.repository';
+import { UserSqlRepository } from '../../../users/user.repository.sql';
+import { AuthSqlRepository } from '../../auth.repository.sql';
 
 export class ConfirmEmailCommand {
   constructor(public code: string) {}
@@ -10,13 +10,13 @@ export class ConfirmEmailCommand {
 @CommandHandler(ConfirmEmailCommand)
 export class ConfirmEmail implements ICommandHandler<ConfirmEmailCommand> {
   constructor(
-    public userRepository: UserRepository,
-    public authRepository: AuthRepository,
+    public userRepository: UserSqlRepository,
+    public authRepository: AuthSqlRepository,
   ) {}
 
   async execute(command: ConfirmEmailCommand): Promise<ResultObject<string>> {
-    const findUser = await this.userRepository.findUserByCode(command.code);
-    if (!findUser) {
+    const foundUser = await this.userRepository.findUserByCode(command.code);
+    if (!foundUser) {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
@@ -24,11 +24,8 @@ export class ConfirmEmail implements ICommandHandler<ConfirmEmailCommand> {
         field: 'code',
       };
     }
-    if (
-      findUser.emailConfirmation.emailExpiration.getTime() <
-      new Date().getTime()
-    ) {
-      console.log(findUser.emailConfirmation.emailExpiration.getTime());
+    if (foundUser.emailExpiration.getTime() < new Date().getTime()) {
+      console.log(foundUser.emailExpiration.getTime());
       console.log(new Date().getTime());
       return {
         data: null,
@@ -37,7 +34,7 @@ export class ConfirmEmail implements ICommandHandler<ConfirmEmailCommand> {
         field: 'code',
       };
     }
-    if (findUser.emailConfirmation.isConfirmed) {
+    if (foundUser.isConfirmed) {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
@@ -45,8 +42,8 @@ export class ConfirmEmail implements ICommandHandler<ConfirmEmailCommand> {
         field: 'code',
       };
     }
-    const isUpdated = await this.authRepository.updateEmailConfimation(
-      findUser._id,
+    const isUpdated = await this.authRepository.updateEmailConfirmation(
+      foundUser.userId,
     );
     if (!isUpdated) {
       return {

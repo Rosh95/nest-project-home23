@@ -1,8 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
-import { UserRepository } from '../../user.repository';
 import { Helpers } from '../../../helpers/helpers';
-import { Types } from 'mongoose';
+import { UserSqlRepository } from '../../user.repository.sql';
 
 export class DeleteUserCommand {
   constructor(public userId: string) {}
@@ -11,7 +10,7 @@ export class DeleteUserCommand {
 @CommandHandler(DeleteUserCommand)
 export class DeleteUser implements ICommandHandler<DeleteUserCommand> {
   constructor(
-    public userRepository: UserRepository,
+    public userRepository: UserSqlRepository,
     public helpers: Helpers,
   ) {}
 
@@ -24,8 +23,7 @@ export class DeleteUser implements ICommandHandler<DeleteUserCommand> {
         message: 'couldn`t find user',
       };
     }
-    const idInMongo = new Types.ObjectId(command.userId);
-    const deleteUser = await this.userRepository.deleteUser(idInMongo);
+    const deleteUser = await this.userRepository.deleteUser(command.userId);
     if (!deleteUser) {
       return {
         data: null,

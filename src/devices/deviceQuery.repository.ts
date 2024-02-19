@@ -9,12 +9,15 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { LoginAttempt, LoginAttemptDocument } from '../auth/auth.schema';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 export class DeviceQueryRepository {
   constructor(
     @InjectModel(Device.name) public deviceModel: Model<DeviceDocument>,
     @InjectModel(LoginAttempt.name)
     public loginAttemptModel: Model<LoginAttemptDocument>,
+    @InjectDataSource() protected dataSource: DataSource,
   ) {}
   async getAllDeviceSessions(userId: string): Promise<DeviceViewModelArray> {
     const sessions = await this.deviceModel
@@ -39,14 +42,27 @@ export class DeviceQueryRepository {
     deviceId: string,
     userId: string,
   ): Promise<string | null> {
-    const foundDeviceInfo = await this.deviceModel.findOne({
-      deviceId: deviceId,
-      userId: userId,
-    });
+    const foundDeviceInfo = await this.dataSource.query(
+      `
+      SELECT id, "userId", "issuedAt", "expirationAt", "deviceId", ip, "deviceName"
+      FROM public."Devices"
+      WHERE "userId" = $1 AND "deviceId" = $2
+    `,
+      [userId, deviceId],
+    );
     if (foundDeviceInfo) {
-      return foundDeviceInfo.userId;
+      return foundDeviceInfo[0].userId;
     }
     return null;
+    //
+    // const foundDeviceInfo = await this.deviceModel.findOne({
+    //   deviceId: deviceId,
+    //   userId: userId,
+    // });
+    // if (foundDeviceInfo) {
+    //   return foundDeviceInfo.userId;
+    // }
+    // return null;
   }
 
   private getSessionsMapping(device: DeviceDBModel): DeviceViewModel {

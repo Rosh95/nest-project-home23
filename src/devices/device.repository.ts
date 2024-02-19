@@ -2,12 +2,15 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Device, DeviceDocument } from './device.types';
 import { Model } from 'mongoose';
 import { LoginAttempt, LoginAttemptDocument } from '../auth/auth.schema';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 export class DeviceRepository {
   constructor(
     @InjectModel(Device.name) public deviceModel: Model<DeviceDocument>,
     @InjectModel(LoginAttempt.name)
     public loginAttemptModel: Model<LoginAttemptDocument>,
+    @InjectDataSource() protected dataSource: DataSource,
   ) {}
   async deleteOtherUserDevice(
     userId: string,
@@ -27,10 +30,20 @@ export class DeviceRepository {
     userId: string,
     currentDeviceId: string,
   ): Promise<boolean> {
-    const result = await this.deviceModel.deleteMany({
-      $and: [{ userId: userId }, { deviceId: currentDeviceId }],
-    });
-    return result.deletedCount >= 1;
+    const deletedUserSession = await this.dataSource.query(
+      `
+      DELETE FROM public."Devices"
+      WHERE "userId" = $1 and "deviceId" = $2
+    `,
+      [userId, currentDeviceId],
+    );
+    console.log(deletedUserSession);
+    return deletedUserSession[1] >= 1;
+
+    // const result = await this.deviceModel.deleteMany({
+    //   $and: [{ userId: userId }, { deviceId: currentDeviceId }],
+    // });
+    // return result.deletedCount >= 1;
   }
 
   async updateIssuedDate(userId: string, deviceId: string): Promise<boolean> {

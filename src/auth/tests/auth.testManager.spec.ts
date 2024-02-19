@@ -12,7 +12,8 @@ export const AuthTestManager = {
       .post('/auth/registration')
       .send(data)
       .expect(expectedStatusCode);
-
+    console.log(response);
+    console.log('  registration ');
     return response;
   },
 

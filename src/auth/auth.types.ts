@@ -17,6 +17,12 @@ export type RecoveryCodeDBModel = {
   email: string;
   recoveryCode: string;
 };
+export type emailConfirmationDataType = {
+  userId: string;
+  confirmationCode: string;
+  emailExpiration: Date;
+  isConfirmed: boolean;
+};
 
 export class CreateLoginDto {
   @IsNotEmpty()
@@ -34,6 +40,12 @@ export class emailDto {
   @IsString()
   @Length(1)
   email: string;
+}
+export class recoveryCodeDto {
+  @IsNotEmpty()
+  @IsString()
+  @Length(1)
+  code: string;
 }
 
 export class newPasswordWithRecoveryCodeDto {

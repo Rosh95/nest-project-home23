@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
-import { UserRepository } from '../../../users/user.repository';
 import { v4 as uuidv4 } from 'uuid';
+import { UserSqlRepository } from '../../../users/user.repository.sql';
 
 export class ChangeUserConfirmationCodeCommand {
   constructor(public email: string) {}
@@ -11,16 +11,16 @@ export class ChangeUserConfirmationCodeCommand {
 export class ChangeUserConfirmationCode
   implements ICommandHandler<ChangeUserConfirmationCodeCommand>
 {
-  constructor(public userRepository: UserRepository) {}
+  constructor(public userRepository: UserSqlRepository) {}
 
   async execute(
     command: ChangeUserConfirmationCodeCommand,
   ): Promise<ResultObject<string>> {
-    const currentUser = await this.userRepository.findUserByEmail(
+    const isExistUser = await this.userRepository.findUserByEmail(
       command.email,
     );
 
-    if (!currentUser) {
+    if (!isExistUser) {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
@@ -28,8 +28,10 @@ export class ChangeUserConfirmationCode
         message: 'user doesn`t exist',
       };
     }
+    const currentUserInfo =
+      await this.userRepository.findFullInfoUserAndEmailInfo(command.email);
 
-    if (currentUser.emailConfirmation.isConfirmed) {
+    if (currentUserInfo.isConfirmed) {
       return {
         data: null,
         resultCode: ResultCode.BadRequest,
@@ -41,7 +43,7 @@ export class ChangeUserConfirmationCode
 
     try {
       await this.userRepository.updateConfirmationCode(
-        currentUser._id,
+        currentUserInfo.id,
         newConfirmationCode,
       );
     } catch (e) {
@@ -52,9 +54,8 @@ export class ChangeUserConfirmationCode
         message: 'user some error on resending email' + e.message,
       };
     }
-    const updatedUserInfo = await this.userRepository.findUserByEmail(
-      command.email,
-    );
+    const updatedUserInfo =
+      await this.userRepository.findFullInfoUserAndEmailInfo(command.email);
     if (!updatedUserInfo) {
       return {
         data: null,
@@ -63,8 +64,17 @@ export class ChangeUserConfirmationCode
         message: 'user some error on resending email',
       };
     }
+
+    if (updatedUserInfo.confirmationCode !== newConfirmationCode) {
+      return {
+        data: null,
+        resultCode: ResultCode.BadRequest,
+        field: 'code',
+        message: 'user some error on resending email',
+      };
+    }
     return {
-      data: updatedUserInfo.emailConfirmation.confirmationCode,
+      data: updatedUserInfo.confirmationCode,
       resultCode: ResultCode.NoContent,
     };
   }

@@ -1,5 +1,6 @@
 import * as process from 'process';
-
+import { config } from 'dotenv';
+config();
 const dbName = 'home_works';
 
 export const settings = () => ({
@@ -13,4 +14,10 @@ export const settings = () => ({
   LIMIT_COUNT: process.env.LIMIT_COUNT || 10,
   HTTP_BASIC_USER: process.env.HTTP_BASIC_USER || '123',
   HTTP_BASIC_PASS: process.env.HTTP_BASIC_PASS || '123',
+  ACCESS_JWT_LIFETIME: process.env.ACCESS_JWT_LIFETIME || '123',
+  REFRESH_JWT_LIFETIME: process.env.REFRESH_JWT_LIFETIME || '123',
+  SQL_HOST: process.env.SQL_HOST || '123',
+  SQL_USERNAME: process.env.SQL_USERNAME || '123',
+  SQL_PASSWORD: process.env.SQL_PASSWORD || '123',
+  SQL_DATABASE: process.env.SQL_DATABASE || '123',
 });

@@ -1,9 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UserAndDeviceTypeFromRefreshToken } from '../../jwt.types';
 import jwt from 'jsonwebtoken';
-import { settings } from '../../jwt.settings';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
-import { UsersQueryRepository } from '../../../users/usersQuery.repository';
+import { settings } from '../../../settings';
+import { UsersQuerySqlRepository } from '../../../users/usersQuery.repository.sql';
 
 export class GetTokenInfoByRefreshTokenCommand {
   constructor(public token: string) {}
@@ -13,14 +13,14 @@ export class GetTokenInfoByRefreshTokenCommand {
 export class GetTokenInfoByRefreshToken
   implements ICommandHandler<GetTokenInfoByRefreshTokenCommand>
 {
-  constructor(private usersQueryRepository: UsersQueryRepository) {}
+  constructor(private usersQueryRepository: UsersQuerySqlRepository) {}
 
   async execute(
     command: GetTokenInfoByRefreshTokenCommand,
   ): Promise<ResultObject<UserAndDeviceTypeFromRefreshToken>> {
     let result;
     try {
-      result = jwt.verify(command.token, settings.JWT_SECRET) as {
+      result = jwt.verify(command.token, settings().JWT_SECRET) as {
         userId: string;
         deviceId: string;
         iat: number;

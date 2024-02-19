@@ -2,11 +2,6 @@ import { IsNotEmpty, IsString, Length, Matches } from 'class-validator';
 import { Types } from 'mongoose';
 import { Transform, TransformFnParams } from 'class-transformer';
 
-export type BlogPostInputModel = {
-  content: string;
-  shortDescription: string;
-  title: string;
-};
 export type BlogInputModel = {
   name: string;
   description: string;

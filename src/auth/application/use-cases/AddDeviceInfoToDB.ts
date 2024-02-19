@@ -1,18 +1,17 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UserRepository } from '../../../users/user.repository';
-import { UsersQueryRepository } from '../../../users/usersQuery.repository';
-import { AuthRepository } from '../../auth.repository';
-import { Types } from 'mongoose';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { v4 as uuidv4 } from 'uuid';
 import { DeviceDBModel } from '../../../devices/device.types';
 import { CreateJWTCommand } from '../../../jwt/application/use-cases/CreateJWT';
 import { CreateRefreshJWTCommand } from '../../../jwt/application/use-cases/CreateRefreshJWT';
 import { GetTokenInfoByRefreshTokenCommand } from '../../../jwt/application/use-cases/GetTokenInfoByRefreshToken';
+import { UserSqlRepository } from '../../../users/user.repository.sql';
+import { UsersQuerySqlRepository } from '../../../users/usersQuery.repository.sql';
+import { AuthSqlRepository } from '../../auth.repository.sql';
 
 export class AddDeviceInfoToDBCommand {
   constructor(
-    public userId: Types.ObjectId,
+    public userId: string,
     public userAgent: string,
     public ip: string,
     public deviceId?: string,
@@ -24,9 +23,9 @@ export class AddDeviceInfoToDB
   implements ICommandHandler<AddDeviceInfoToDBCommand>
 {
   constructor(
-    public userRepository: UserRepository,
-    public authRepository: AuthRepository,
-    public usersQueryRepository: UsersQueryRepository,
+    public userRepository: UserSqlRepository,
+    public authRepository: AuthSqlRepository,
+    public usersQueryRepository: UsersQuerySqlRepository,
     private commandBus: CommandBus,
   ) {}
 

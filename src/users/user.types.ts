@@ -6,12 +6,11 @@ import {
   Length,
   Matches,
   Validate,
-  ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { Injectable } from '@nestjs/common';
-import { UserRepository } from './user.repository';
+import { UserSqlRepository } from './user.repository.sql';
 
 export type UserViewModel = {
   id: string;
@@ -65,6 +64,22 @@ export type NewUsersDBType = {
   };
 };
 
+export type emailConfirmationType = {
+  userId: string;
+  confirmationCode: string;
+  emailExpiration: string;
+  isConfirmed: boolean;
+};
+
+export type NewUsersDBTypeSQL = {
+  _id: ObjectId;
+  login: string;
+  email: string;
+  passwordHash: string;
+  passwordSalt: string;
+  createdAt: Date;
+};
+
 export type PaginatorUserViewType = {
   pagesCount: number;
   page: number;
@@ -96,34 +111,29 @@ export type PaginatorUserViewType = {
 @ValidatorConstraint({ name: 'EmailExists', async: true })
 @Injectable()
 export class EmailExistsRule implements ValidatorConstraintInterface {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepository: UserSqlRepository) {}
 
   async validate(value: string) {
-    const result = await this.userRepository.findLoginOrEmail(value);
-    console.log(result + ' email');
-
+    const result = await this.userRepository.findUserByLoginOrEmail(value);
     return !result;
   }
 
-  defaultMessage(args: ValidationArguments) {
-    console.log(args.value + ' email value');
-    return 'Email Doesn`t exist';
+  defaultMessage() {
+    return 'Email  exist';
   }
 }
 @ValidatorConstraint({ name: 'LoginExists', async: true })
 @Injectable()
 export class LoginExistsRule implements ValidatorConstraintInterface {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepository: UserSqlRepository) {}
 
   async validate(value: string) {
-    const result = await this.userRepository.findLoginOrEmail(value);
-    console.log(result + ' login');
+    const result = await this.userRepository.findUserByLoginOrEmail(value);
     return !result;
   }
 
-  defaultMessage(args: ValidationArguments) {
-    console.log(args.value + 'login  value');
-    return 'Login Doesn`t exist';
+  defaultMessage() {
+    return 'Login  exist';
   }
 }
 export class CreateUserDto {

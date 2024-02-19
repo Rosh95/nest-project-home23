@@ -1,6 +1,6 @@
-import { FilterQuery, Model } from 'mongoose';
+import { Model } from 'mongoose';
 import { ObjectId } from 'mongodb';
-import { Device, DeviceDBModel, DeviceDocument } from '../devices/device.types';
+import { Device, DeviceDocument } from '../devices/device.types';
 import { InjectModel } from '@nestjs/mongoose';
 import { RecoveryCode, RecoveryCodeDocument } from './auth.schema';
 import { User, UserDocument } from '../users/user.schema';
@@ -8,6 +8,8 @@ import {
   TokensBlackList,
   TokensBlackListDocument,
 } from './schemas/TokensBlackListSchema';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 export class AuthRepository {
   constructor(
@@ -18,6 +20,7 @@ export class AuthRepository {
     public deviceModel: Model<DeviceDocument>,
     @InjectModel(TokensBlackList.name)
     public tokensBlackListModel: Model<TokensBlackListDocument>,
+    @InjectDataSource() protected dataSource: DataSource,
   ) {}
 
   async updateEmailConfimation(userId: ObjectId): Promise<boolean> {
@@ -78,38 +81,97 @@ export class AuthRepository {
   }
 
   async addTokenInBlackList(token: string) {
-    return this.tokensBlackListModel.insertMany({ token: token });
+    const result = await this.dataSource.query(
+      `
+        INSERT INTO public."TokensBlackList"(token)
+        VALUES ($1);
+    `,
+      [token],
+    );
+    return result[0] ? true : false;
+
+    //  return this.tokensBlackListModel.insertMany({ token: token });
   }
 
   async findTokenInBlackList(token: string) {
-    return this.tokensBlackListModel.findOne({ token: token });
+    const result = await this.dataSource.query(
+      `
+    SELECT token FROM public."TokensBlackList";
+    WHERE token = $1
+    `,
+      [token],
+    );
+    return result[0] ? true : false;
+    //  return this.tokensBlackListModel.findOne({ token: token });
   }
 
-  async createOrUpdateRefreshToken(
-    refreshTokenInfo: DeviceDBModel,
-  ): Promise<boolean> {
-    const filter: FilterQuery<DeviceDBModel> = {
-      userId: refreshTokenInfo.userId,
-      deviceId: refreshTokenInfo.deviceId,
-    };
-    const findUserInRefreshCollection = await this.deviceModel.findOne(filter);
-
-    if (findUserInRefreshCollection) {
-      const newRefreshToken = await this.deviceModel.updateOne(filter, {
-        $set: {
-          issuedAt: refreshTokenInfo.issuedAt,
-          expirationAt: refreshTokenInfo.expirationAt,
-          ip: refreshTokenInfo.ip,
-          deviceName: refreshTokenInfo.deviceName,
-        },
-      });
-      return newRefreshToken.matchedCount === 1;
-    }
-    try {
-      await this.deviceModel.create(refreshTokenInfo);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  // async createOrUpdateRefreshToken(
+  //   refreshTokenInfo: DeviceDBModel,
+  // ): Promise<boolean> {
+  //   const queryForFindDevice = `
+  //   SELECT * FROM public."Devices" u
+  //   WHERE "userId" = $1 AND  "deviceId" = $2
+  //   `;
+  //   const foundUserDevices: getUserViewModel[] = await this.dataSource.query(
+  //     queryForFindDevice,
+  //     [`${refreshTokenInfo.userId}`, `${refreshTokenInfo.deviceId}`],
+  //   );
+  //   if (foundUserDevices[0]) {
+  //     const updatedDevice = await this.dataSource.query(
+  //       `
+  //     UPDATE public."Devices"
+  //     SET  "issuedAt"= $3, "expirationAt"= $4, "ip" = $5 , "deviceName"= $6
+  //     WHERE "userId" = $1 and "deviceId" = $2 ;
+  //     `,
+  //       [
+  //         `${refreshTokenInfo.userId}`,
+  //         `${refreshTokenInfo.deviceId}`,
+  //         `${refreshTokenInfo.issuedAt}`,
+  //         `${refreshTokenInfo.expirationAt}`,
+  //         `${refreshTokenInfo.ip}`,
+  //         `${refreshTokenInfo.deviceName}`,
+  //       ],
+  //     );
+  //     return updatedDevice[1] === 1;
+  //   }
+  //   try {
+  //     await this.dataSource.query(
+  //       `
+  //     INSERT INTO public."Devices"(
+  //      "userId", "issuedAt", "expirationAt", "deviceId", "ip", "deviceName")
+  //       VALUES ($1, $2, $3, $4, $5, $6);
+  //     `,
+  //       [
+  //         `${refreshTokenInfo.userId}`,
+  //         `${refreshTokenInfo.issuedAt}`,
+  //         `${refreshTokenInfo.expirationAt}`,
+  //         `${refreshTokenInfo.deviceId}`,
+  //         `${refreshTokenInfo.ip}`,
+  //         `${refreshTokenInfo.deviceName}`,
+  //       ],
+  //     );
+  //     return true;
+  //   } catch (e) {
+  //     return false;
+  //   }
+  //   // const findUserInRefreshCollection = await this.deviceModel.findOne(filter);
+  //   //
+  //   // if (findUserInRefreshCollection) {
+  //   //   const newRefreshToken = await this.deviceModel.updateOne(filter, {
+  //   //     $set: {
+  //   //       issuedAt: refreshTokenInfo.issuedAt,
+  //   //       expirationAt: refreshTokenInfo.expirationAt,
+  //   //       ip: refreshTokenInfo.ip,
+  //   //       deviceName: refreshTokenInfo.deviceName,
+  //   //     },
+  //   //   });
+  //   //   return newRefreshToken.matchedCount === 1;
+  //   // }
+  //   // try {
+  //   //   await this.deviceModel.create(refreshTokenInfo);
+  //   //   return true;
+  //   // } catch (e) {
+  //   //   return false;
+  //   // }
+  // }
 }
