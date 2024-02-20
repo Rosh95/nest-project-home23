@@ -7,7 +7,6 @@ import {
   Param,
   UnauthorizedException,
 } from '@nestjs/common';
-import { DeviceQueryRepository } from './deviceQuery.repository';
 import { mappingErrorStatus } from '../helpers/heplersType';
 import { CommandBus } from '@nestjs/cqrs';
 import { DeleteOtherUserDeviceCommand } from './application/use-cases/DeleteOtherUserDevice';
@@ -16,13 +15,14 @@ import { GetUserIdByRefreshTokenCommand } from '../jwt/application/use-cases/Get
 import { GetTokenInfoByRefreshTokenCommand } from '../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 import { Cookies } from '../auth/decorators/auth.decorator';
 import { SkipThrottle } from '@nestjs/throttler';
+import { DeviceQueryRepositorySql } from './deviceQuery.repository.sql';
 
 @SkipThrottle()
 @Injectable()
 @Controller('security/devices')
 export class DeviceController {
   constructor(
-    public deviceQueryRepository: DeviceQueryRepository,
+    public deviceQueryRepository: DeviceQueryRepositorySql,
     private commandBus: CommandBus,
   ) {}
 
@@ -34,7 +34,7 @@ export class DeviceController {
     if (currentUserId.data === null) mappingErrorStatus(currentUserId);
 
     const result = await this.deviceQueryRepository.getAllDeviceSessions(
-      currentUserId.data.toString(),
+      currentUserId.data,
     );
 
     return result;

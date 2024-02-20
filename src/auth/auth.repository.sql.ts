@@ -32,7 +32,8 @@ export class AuthSqlRepository {
     `,
       [userId],
     );
-    return isUpdatedEmailConfirmation[0] === 1;
+    console.log(isUpdatedEmailConfirmation + ' isUpdatedEmailConfirmation');
+    return isUpdatedEmailConfirmation[1] === 1;
     // const result = await this.userModel.updateOne(
     //   { _id: new ObjectId(userId) },
     //   {

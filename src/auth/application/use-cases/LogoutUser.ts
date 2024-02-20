@@ -3,9 +3,9 @@ import { UsersQueryRepository } from '../../../users/usersQuery.repository';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { GetTokenInfoByRefreshTokenCommand } from '../../../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 import { UserAndDeviceTypeFromRefreshToken } from '../../../jwt/jwt.types';
-import { DeviceRepository } from '../../../devices/device.repository';
-import { DeviceQueryRepository } from '../../../devices/deviceQuery.repository';
 import { AuthSqlRepository } from '../../auth.repository.sql';
+import { DeviceQueryRepositorySql } from '../../../devices/deviceQuery.repository.sql';
+import { DeviceRepositorySql } from '../../../devices/device.repository.sql';
 
 export class LogoutUserCommand {
   constructor(public refreshToken: string) {}
@@ -16,8 +16,8 @@ export class LogoutUser implements ICommandHandler<LogoutUserCommand> {
   constructor(
     public authRepository: AuthSqlRepository,
     public usersQueryRepository: UsersQueryRepository,
-    public deviceRepository: DeviceRepository,
-    public deviceQueryRepository: DeviceQueryRepository,
+    public deviceRepository: DeviceRepositorySql,
+    public deviceQueryRepository: DeviceQueryRepositorySql,
     private commandBus: CommandBus,
   ) {}
 

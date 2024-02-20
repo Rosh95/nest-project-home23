@@ -40,7 +40,7 @@ export class GetUserIdByRefreshToken
       };
     }
     return {
-      data: new Types.ObjectId(result.userId),
+      data: result.userId,
       resultCode: ResultCode.Success,
       field: 'refreshToken',
     };

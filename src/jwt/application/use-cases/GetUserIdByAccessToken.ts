@@ -20,7 +20,18 @@ export class GetUserIdByAccessToken
     try {
       result = jwt.verify(command.token, settings().JWT_SECRET) as {
         userId: string;
+        iat: number;
+        exp: number;
       };
+
+      console.log(result.iat + ' iat');
+      console.log(result.exp + ' exp');
+      console.log(new Date().getTime() / 1000 + ' currenttime');
+      const result22 = result.exp < new Date().getTime() / 1000;
+      console.log(result22);
+      if (result22) {
+        return null;
+      }
     } catch (e) {
       return null;
     }

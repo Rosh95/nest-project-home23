@@ -25,7 +25,6 @@ import {
   Cookies,
   emailDto,
   newPasswordWithRecoveryCodeDto,
-  recoveryCodeDto,
 } from './auth.types';
 import { CommandBus } from '@nestjs/cqrs';
 import { FindUserByIdCommand } from '../users/application/use-cases/FindUserById';

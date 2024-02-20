@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { DeviceRepository } from '../../device.repository';
+import { DeviceRepositorySql } from '../../device.repository.sql';
 
 export class DeleteOtherUserDeviceCommand {
   constructor(
@@ -12,7 +12,7 @@ export class DeleteOtherUserDeviceCommand {
 export class DeleteOtherUserDevice
   implements ICommandHandler<DeleteOtherUserDeviceCommand>
 {
-  constructor(public deviceRepository: DeviceRepository) {}
+  constructor(public deviceRepository: DeviceRepositorySql) {}
 
   async execute(command: DeleteOtherUserDeviceCommand): Promise<boolean> {
     return await this.deviceRepository.deleteOtherUserDevice(

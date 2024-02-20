@@ -26,7 +26,9 @@ export class UsersQuerySqlRepository {
     )
       ? queryData.sortBy
       : 'createdAt';
-    const sortDirection = queryData.sortDirection === 1 ? 'desc' : 'asc';
+    const sortDirection = queryData.sortDirection === 1 ? 'asc' : 'desc';
+    console.log(sortBy + ' sortBy');
+    console.log(sortDirection + ' sortDirection');
     const query = `
     SELECT id, login, email, "createdAt"  
     FROM public."Users" u 

@@ -99,6 +99,8 @@ import { UsersQuerySqlRepository } from './users/usersQuery.repository.sql';
 import { UserSqlRepository } from './users/user.repository.sql';
 import { AuthSqlRepository } from './auth/auth.repository.sql';
 import { RecoveryCodesRepository } from './email/recoveryCodes.repository';
+import { DeviceQueryRepositorySql } from './devices/deviceQuery.repository.sql';
+import { DeviceRepositorySql } from './devices/device.repository.sql';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
@@ -129,6 +131,8 @@ const providers = [
   UserSqlRepository,
   AuthSqlRepository,
   RecoveryCodesRepository,
+  DeviceQueryRepositorySql,
+  DeviceRepositorySql,
   JwtService,
   Helpers,
   TestingService,

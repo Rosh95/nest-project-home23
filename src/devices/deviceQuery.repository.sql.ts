@@ -12,7 +12,7 @@ import { LoginAttempt, LoginAttemptDocument } from '../auth/auth.schema';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
-export class DeviceQueryRepository {
+export class DeviceQueryRepositorySql {
   constructor(
     @InjectModel(Device.name) public deviceModel: Model<DeviceDocument>,
     @InjectModel(LoginAttempt.name)
@@ -40,13 +40,23 @@ export class DeviceQueryRepository {
   }
 
   async findUserIdByDeviceId(deviceId: string): Promise<string | null> {
-    const foundDeviceInfo = await this.deviceModel.findOne({
-      deviceId: deviceId,
-    });
-    if (foundDeviceInfo) {
-      return foundDeviceInfo.userId;
-    }
-    return null;
+    const foundUser = await this.dataSource.query(
+      `
+      SELECT  "userId", "issuedAt", "expirationAt", "deviceId", ip, "deviceName"
+      FROM public."Devices" 
+      WHERE "deviceId" = $1
+    `,
+      [deviceId],
+    );
+    console.log(foundUser);
+    return foundUser[0] ? foundUser[0].userId : false;
+    // const foundDeviceInfo = await this.deviceModel.findOne({
+    //   deviceId: deviceId,
+    // });
+    // if (foundDeviceInfo) {
+    //   return foundDeviceInfo.userId;
+    // }
+    // return null;
   }
   async findSessionByDeviceIdAndUserId(
     deviceId: string,

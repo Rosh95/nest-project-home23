@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { DeviceRepository } from './device.repository';
-import { DeviceQueryRepository } from './deviceQuery.repository';
+import { DeviceQueryRepositorySql } from './deviceQuery.repository.sql';
+import { DeviceRepositorySql } from './device.repository.sql';
 
 @Injectable()
 export class DeviceService {
   constructor(
-    public deviceRepository: DeviceRepository,
-    public deviceQueryRepository: DeviceQueryRepository,
+    public deviceRepository: DeviceRepositorySql,
+    public deviceQueryRepository: DeviceQueryRepositorySql,
   ) {}
 
   // async deleteOtherUserDevice(

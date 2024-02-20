@@ -9,9 +9,9 @@ import { CreateJWTCommand } from '../../../jwt/application/use-cases/CreateJWT';
 import { CreateRefreshJWTCommand } from '../../../jwt/application/use-cases/CreateRefreshJWT';
 import { GetTokenInfoByRefreshTokenCommand } from '../../../jwt/application/use-cases/GetTokenInfoByRefreshToken';
 import { UserAndDeviceTypeFromRefreshToken } from '../../../jwt/jwt.types';
-import { DeviceQueryRepository } from '../../../devices/deviceQuery.repository';
 import { UsersQuerySqlRepository } from '../../../users/usersQuery.repository.sql';
 import { AuthSqlRepository } from '../../auth.repository.sql';
+import { DeviceQueryRepositorySql } from '../../../devices/deviceQuery.repository.sql';
 
 export class RefreshTokenByRefreshCommand {
   constructor(
@@ -28,7 +28,7 @@ export class RefreshTokenByRefresh
   constructor(
     public authRepository: AuthSqlRepository,
     public usersQueryRepository: UsersQuerySqlRepository,
-    public deviceQueryRepository: DeviceQueryRepository,
+    public deviceQueryRepository: DeviceQueryRepositorySql,
     private commandBus: CommandBus,
   ) {}
 
