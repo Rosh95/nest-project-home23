@@ -4,7 +4,6 @@ import {
   DeviceDBModel,
   DeviceDocument,
   DeviceViewModel,
-  DeviceViewModelArray,
 } from './device.types';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -19,8 +18,8 @@ export class DeviceQueryRepositorySql {
     public loginAttemptModel: Model<LoginAttemptDocument>,
     @InjectDataSource() protected dataSource: DataSource,
   ) {}
-  async getAllDeviceSessions(userId: string): Promise<DeviceViewModelArray> {
-    const sessions = await this.dataSource.query(
+  async getAllDeviceSessions(userId: string): Promise<DeviceViewModel[]> {
+    const sessions: DeviceDBModel[] = await this.dataSource.query(
       `
     SELECT "userId", "issuedAt", "expirationAt", "deviceId", ip, "deviceName"
     FROM public."Devices"
@@ -29,7 +28,8 @@ export class DeviceQueryRepositorySql {
       [userId],
     );
 
-    return sessions;
+    return sessions.map((session) => this.getSessionsMapping(session));
+
     // const sessions = await this.deviceModel
     //   .find({
     //     userId: userId,
@@ -86,10 +86,11 @@ export class DeviceQueryRepositorySql {
   }
 
   private getSessionsMapping(device: DeviceDBModel): DeviceViewModel {
+    console.log(device.issuedAt + '  device');
     return {
       ip: device.ip,
       title: device.deviceName,
-      lastActiveDate: new Date(device.issuedAt * 1000).toISOString(),
+      lastActiveDate: new Date(+device.issuedAt).toISOString(),
       deviceId: device.deviceId,
     };
   }
