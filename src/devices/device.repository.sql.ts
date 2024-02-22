@@ -16,6 +16,21 @@ export class DeviceRepositorySql {
     userId: string,
     currentDeviceId: string,
   ): Promise<boolean> {
+    const findAllSessions = await this.dataSource.query(
+      `
+      SELECT * FROM public."Devices"
+      WHERE "userId" = $1
+    `,
+      [userId],
+    );
+
+    if (
+      findAllSessions.length === 1 &&
+      findAllSessions[0].deviceId === currentDeviceId
+    ) {
+      return true;
+    }
+
     const deletedOtherSession = await this.dataSource.query(
       `
       DELETE FROM public."Devices"
@@ -23,6 +38,7 @@ export class DeviceRepositorySql {
     `,
       [userId, currentDeviceId],
     );
+    console.log(deletedOtherSession);
     return deletedOtherSession[1] >= 1;
   }
 

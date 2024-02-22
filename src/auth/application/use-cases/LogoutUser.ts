@@ -46,11 +46,20 @@ export class LogoutUser implements ICommandHandler<LogoutUserCommand> {
     //   currentUserId,
     //   currentDeviceId,
     // );
-    const isActualSession =
-      await this.deviceQueryRepository.findSessionByDeviceIdAndUserId(
-        currentDeviceId,
-        currentUserId,
-      );
+    let isActualSession;
+    try {
+      isActualSession =
+        await this.deviceQueryRepository.findSessionByDeviceIdAndUserId(
+          currentDeviceId,
+          currentUserId,
+        );
+    } catch (e) {
+      return {
+        data: null,
+        resultCode: ResultCode.Unauthorized,
+        message: 'couldn`t find ifo about, please refresh your refreshToken',
+      };
+    }
 
     if (!isActualSession) {
       return {

@@ -153,22 +153,42 @@ describe('AuthController (e2e)', () => {
         .set('Cookie', [loginUserInfo.refreshToken!])
         .expect(ResultCode.Unauthorized);
     });
+    it('shouldn`t refresh token and get error for invalid values, after delete', async () => {
+      await AuthTestManager.registrationUser(
+        httpServer,
+        createVasyaData(2).registrationData,
+      );
+      const loginUserInfo = await AuthTestManager.loginUser(
+        httpServer,
+        createVasyaData(2).loginData,
+      );
 
-    it('should registration user2222222', async () => {
-      await request(httpServer)
-        .post('/auth/registration')
-        .send(createVasyaData(3).registrationData)
-        .expect(ResultCode.NoContent);
+      const devices = await request(httpServer)
+        .get('/security/devices')
+        .set('Cookie', [loginUserInfo.refreshToken!])
+        .expect(200);
+      const devicesArray = devices.body.map((i) => i.deviceId);
+      console.log('device   ' + devices.body);
+      console.log(devicesArray);
 
       await request(httpServer)
-        .post('/auth/registration')
-        .send(createVasyaData(2555555555555).registrationData)
-        .expect(ResultCode.BadRequest);
+        .delete('/security/devices')
+        .set('Cookie', [loginUserInfo.refreshToken!])
+        .expect(204);
 
+      const result = await request(httpServer)
+        .post('/auth/refresh-token')
+        .set('Cookie', [loginUserInfo.refreshToken!])
+        .expect(200);
+      expect(result.body.accessToken).toEqual(expect.any(String));
+
+      await AuthTestManager.loginUser(httpServer, createVasyaData(2).loginData);
       await request(httpServer)
-        .post('/auth/registration')
-        .send(createVasyaData(3).registrationData)
-        .expect(ResultCode.BadRequest);
+        .post('/auth/refresh-token')
+        .set('Cookie', [loginUserInfo.refreshToken!])
+        .expect(401);
+
+      await request(httpServer).post('/auth/refresh-token').expect(401);
     });
   });
 });

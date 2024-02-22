@@ -27,27 +27,29 @@ export class UsersQuerySqlRepository {
       ? queryData.sortBy
       : 'createdAt';
     const sortDirection = queryData.sortDirection === 1 ? 'asc' : 'desc';
-    console.log(sortBy + ' sortBy');
-    console.log(sortDirection + ' sortDirection');
+    const pagesCount = await this.countTotalUsersAndPages(queryData);
     const query = `
     SELECT id, login, email, "createdAt"  
     FROM public."Users" u 
     WHERE login LIKE $1 AND  email LIKE $2
     ORDER BY "${sortBy}" ${sortDirection}
+    LIMIT $3 OFFSET $4
     `;
     const userData: getUserViewModel[] = await this.dataSource.query(query, [
       `%${searchLoginTerm}%`,
       `%${searchEmailTerm}%`,
+      `${queryData.pageSize}`,
+      `${queryData.skippedPages}`,
     ]);
     const usersViewArray = userData.map((user) =>
       this.getUsersSqlMapping(user),
     );
-    const pagesCount = await this.countTotalUsersAndPages(queryData);
+
     return {
       pagesCount: pagesCount.usersPagesCount,
       page: queryData.pageNumber,
       pageSize: queryData.pageSize,
-      totalCount: pagesCount.usersTotalCount,
+      totalCount: +pagesCount.usersTotalCount,
       items: usersViewArray,
     };
   }

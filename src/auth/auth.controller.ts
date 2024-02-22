@@ -79,6 +79,8 @@ export class AuthController {
     @Ip() ip: string,
     @Cookies('refreshToken') refreshToken: string,
   ) {
+    if (!refreshToken) throw new UnauthorizedException();
+
     const tokens = await this.commandBus.execute(
       new RefreshTokenByRefreshCommand(refreshToken, userAgent, ip),
     );
