@@ -31,7 +31,7 @@ export class UsersQuerySqlRepository {
     const query = `
     SELECT id, login, email, "createdAt"  
     FROM public."Users" u 
-    WHERE login ILIKE $1 AND  email ILIKE $2
+    WHERE login ILIKE $1 OR  email ILIKE $2
     ORDER BY "${sortBy}" ${sortDirection}
     LIMIT $3 OFFSET $4
     `;
@@ -97,7 +97,7 @@ export class UsersQuerySqlRepository {
     SELECT COUNT(*) FROM
     (SELECT id, login, email, "createdAt"  
     FROM public."Users" u 
-    WHERE login ILIKE $1 AND  email ILIKE $2
+    WHERE login ILIKE $1 OR  email ILIKE $2
     )
     `;
     const userData = await this.dataSource.query(query, [

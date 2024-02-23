@@ -8,6 +8,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   appSettings(app);
-  await app.listen(settings().PORT || 3001);
+  await app.listen(settings().PORT || 3000);
 }
 bootstrap().then();
