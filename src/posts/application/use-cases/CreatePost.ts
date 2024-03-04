@@ -1,11 +1,13 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { Helpers } from '../../../helpers/helpers';
-import { PostRepository } from '../../post.repository';
-import { CreatePostWithBlogIdDto, PostDBModel } from '../../post.types';
+import {
+  CreatePostWithBlogIdDto,
+  PostInputTypeToDBSql,
+} from '../../post.types';
 import { BlogViewType } from '../../../blogs/blogs.types';
-import { ObjectId } from 'mongodb';
-import { BlogQueryRepository } from '../../../blogs/blogQuery.repository';
+import { PostRepositorySql } from '../../post.repository.sql';
+import { BlogQueryRepositorySql } from '../../../blogs/blogQuery.repository.sql';
 
 export class CreatePostCommand {
   constructor(
@@ -17,8 +19,8 @@ export class CreatePostCommand {
 @CommandHandler(CreatePostCommand)
 export class CreatePost implements ICommandHandler<CreatePostCommand> {
   constructor(
-    public postRepository: PostRepository,
-    public blogQueryRepository: BlogQueryRepository,
+    public postRepository: PostRepositorySql,
+    public blogQueryRepository: BlogQueryRepositorySql,
     public helpers: Helpers,
   ) {}
 
@@ -37,14 +39,11 @@ export class CreatePost implements ICommandHandler<CreatePostCommand> {
         message: 'couldn`t find this blog',
       };
     }
-    const newPost: PostDBModel = {
-      _id: new ObjectId(),
+    const newPost: PostInputTypeToDBSql = {
       title: command.createPostDto.title,
       shortDescription: command.createPostDto.shortDescription,
       content: command.createPostDto.content,
       blogId: command.blogId,
-      blogName: foundBlog.name,
-      createdAt: new Date(),
     };
     const createdPostId = await this.postRepository.createPost(newPost);
     if (createdPostId) {

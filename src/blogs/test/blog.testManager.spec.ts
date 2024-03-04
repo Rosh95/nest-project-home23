@@ -16,7 +16,7 @@ export const blogsTestManager = {
       isMembership: false,
     };
     const response = await request(server)
-      .post('/blogs')
+      .post('/sa/blogs')
       .auth('admin', 'qwerty')
       .send(blogData)
       .expect(expectedStatusCode);

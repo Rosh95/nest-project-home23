@@ -9,7 +9,6 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { CommentsQueryRepository } from './commentsQuery.repository';
 import { CommentsViewModel, LikeStatusOptionVariable } from './comments.types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
@@ -20,20 +19,20 @@ import { UpdateCommentByIdCommand } from './application/use-cases/UpdateCommentB
 import { mappingErrorStatus, ResultCode } from '../helpers/heplersType';
 import { UpdateCommentLikeStatusByIdCommand } from './application/use-cases/UpdateCommentLikeStatusById';
 import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
-import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
-import { Types } from 'mongoose';
+import { ParseStringPipe } from '../pipes/ParseObjectIdPipe';
+import { CommentsQueryRepositorySql } from './commentsQuery.repository.sql';
 
 @Injectable()
 @Controller('comments')
 export class CommentsController {
   constructor(
-    public commentQueryRepository: CommentsQueryRepository,
+    public commentQueryRepository: CommentsQueryRepositorySql,
     private commandBus: CommandBus,
   ) {}
 
   @Get(':commentId')
   async getCommentById(
-    @Param('commentId', new ParseObjectIdPipe()) commentId: Types.ObjectId,
+    @Param('commentId', new ParseStringPipe()) commentId: string,
     @AccessTokenHeader() accessToken: string,
   ) {
     const currentAccessToken = accessToken ? accessToken : null;
@@ -42,10 +41,7 @@ export class CommentsController {
     );
 
     const commentInfo: CommentsViewModel | null =
-      await this.commentQueryRepository.getCommentById(
-        commentId.toString(),
-        userId,
-      );
+      await this.commentQueryRepository.getCommentById(commentId, userId);
 
     return commentInfo
       ? commentInfo
@@ -60,7 +56,7 @@ export class CommentsController {
   @Delete(':commentId')
   @HttpCode(204)
   async deleteCommentById(
-    @Param('commentId') commentId: string,
+    @Param('commentId', new ParseStringPipe()) commentId: string,
     @UserId() userId: string,
   ) {
     // const isDeleted = await this.commentsService.deleteCommentById(commentId);
@@ -75,7 +71,7 @@ export class CommentsController {
   @Put(':commentId')
   @HttpCode(204)
   async updateComment(
-    @Param('commentId') commentId: string,
+    @Param('commentId', new ParseStringPipe()) commentId: string,
     @Body() { content }: CreateCommentDto,
     @UserId() userId: string,
   ) {
@@ -90,7 +86,7 @@ export class CommentsController {
   @Put(':commentId/like-status')
   @HttpCode(204)
   async updateCommentLikeStatus(
-    @Param('commentId') commentId: string,
+    @Param('commentId', new ParseStringPipe()) commentId: string,
     @Body() { likeStatus }: LikeStatusOptionVariable,
     @UserId() userId: string,
   ) {

@@ -11,8 +11,7 @@ import {
 } from 'class-validator';
 import { Transform, TransformFnParams } from 'class-transformer';
 import { Injectable } from '@nestjs/common';
-import { BlogQueryRepository } from '../blogs/blogQuery.repository';
-import { Types } from 'mongoose';
+import { BlogQueryRepositorySql } from '../blogs/blogQuery.repository.sql';
 
 export type PostLikesUsersModel = {
   addedAt: string;
@@ -44,6 +43,20 @@ export type PostDBModel = {
   blogId: string;
   blogName: string | null;
   createdAt: Date;
+};
+export type PostDBModelSql = {
+  id: string;
+  title: string;
+  shortDescription: string;
+  content: string;
+  blogId: string;
+  createdAt: string;
+};
+export type PostInputTypeToDBSql = {
+  title: string;
+  shortDescription: string;
+  content: string;
+  blogId: string;
 };
 export type postInputType = {
   id?: string;
@@ -85,10 +98,10 @@ export type PaginatorPostViewType = {
 @ValidatorConstraint({ name: 'BlogExists', async: true })
 @Injectable()
 export class BlogExistsRule implements ValidatorConstraintInterface {
-  constructor(private blogQueryRepository: BlogQueryRepository) {}
+  constructor(private blogQueryRepository: BlogQueryRepositorySql) {}
 
   async validate(value: string) {
-    if (!Types.ObjectId.isValid(value)) {
+    if (!value) {
       return false;
     }
     const result = await this.blogQueryRepository.findBlogById(value);

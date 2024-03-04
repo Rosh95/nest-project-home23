@@ -80,6 +80,27 @@ export type PaginatorCommentViewType = {
 //     },
 //   },
 // });
+export type InputCommentsDBTypeSql = {
+  content: string;
+  userId: string;
+  postId: string;
+};
+
+export type CommentsDBTypeSql = {
+  id: string;
+  content: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
+};
+export type CommentsDBTypeSqlWithUserLogin = {
+  id: string;
+  content: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
+  userLogin: string;
+};
 
 export type CommentsDBType = {
   _id: ObjectId;

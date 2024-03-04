@@ -9,7 +9,6 @@ import { UserRepository } from './users/user.repository';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PostController } from './posts/post.controller';
 import { AuthController } from './auth/auth.controller';
-import { BlogController } from './blogs/blog.controller';
 import { CommentsController } from './comments/comments.controller';
 import { DeviceController } from './devices/device.controller';
 import { UsersQueryRepository } from './users/usersQuery.repository';
@@ -101,6 +100,15 @@ import { AuthSqlRepository } from './auth/auth.repository.sql';
 import { RecoveryCodesRepository } from './email/recoveryCodes.repository';
 import { DeviceQueryRepositorySql } from './devices/deviceQuery.repository.sql';
 import { DeviceRepositorySql } from './devices/device.repository.sql';
+import { BlogQueryRepositorySql } from './blogs/blogQuery.repository.sql';
+import { BlogRepositorySql } from './blogs/blog.repository.sql';
+import { BlogSAController } from './blogs/blog.controller.sa';
+import { BlogController } from './blogs/blog.controller';
+import { PostQueryRepositorySql } from './posts/postQuery.repository.sql';
+import { PostRepositorySql } from './posts/post.repository.sql';
+import { isPostCreatedByCurrentBlog } from './posts/application/use-cases/isPostCreatedByCurrentBlog';
+import { CommentsRepositorySql } from './comments/comments.repository.sql';
+import { CommentsQueryRepositorySql } from './comments/commentsQuery.repository.sql';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
@@ -133,6 +141,12 @@ const providers = [
   RecoveryCodesRepository,
   DeviceQueryRepositorySql,
   DeviceRepositorySql,
+  BlogRepositorySql,
+  BlogQueryRepositorySql,
+  PostQueryRepositorySql,
+  PostRepositorySql,
+  CommentsRepositorySql,
+  CommentsQueryRepositorySql,
   JwtService,
   Helpers,
   TestingService,
@@ -185,6 +199,7 @@ const useCases = [
   AddDeviceInfoToDB,
   LogoutUser,
   RefreshTokenByRefresh,
+  isPostCreatedByCurrentBlog,
 ];
 
 @Module({
@@ -232,6 +247,7 @@ const useCases = [
     PostController,
     AuthController,
     BlogController,
+    BlogSAController,
     CommentsController,
     DeviceController,
     TestingController,

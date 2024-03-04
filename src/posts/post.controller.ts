@@ -13,7 +13,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PostService } from './post.service';
-import { PostQueryRepository } from './postQuery.repository';
 import {
   CreateCommentDto,
   CreatePostWithBlogIdDto,
@@ -32,14 +31,11 @@ import {
   PaginatorCommentViewType,
 } from '../comments/comments.types';
 import { CommentsService } from '../comments/comments.service';
-import { CommentsQueryRepository } from '../comments/commentsQuery.repository';
-import { ParseObjectIdPipe } from '../pipes/ParseObjectIdPipe';
-import { Types } from 'mongoose';
+import { ParseStringPipe } from '../pipes/ParseObjectIdPipe';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { QueryData } from '../helpers/decorators/helpers.decorator.queryData';
 import { AccessTokenHeader, UserId } from '../users/decorators/user.decorator';
-import { UsersQueryRepository } from '../users/usersQuery.repository';
 import { CommandBus } from '@nestjs/cqrs';
 import { CreateCommentForPostCommand } from '../comments/application/use-cases/CreateCommentForPost';
 import { DeletePostCommand } from './application/use-cases/DeletePost';
@@ -48,19 +44,22 @@ import { UpdatePostCommand } from './application/use-cases/UpdatePost';
 import { UpdatePostLikeStatusByIdCommand } from './application/use-cases/UpdatePostLikeStatusById';
 import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
 import { SkipThrottle } from '@nestjs/throttler';
+import { PostQueryRepositorySql } from './postQuery.repository.sql';
+import { UsersQuerySqlRepository } from '../users/usersQuery.repository.sql';
+import { CommentsQueryRepositorySql } from '../comments/commentsQuery.repository.sql';
 
 @Injectable()
 @SkipThrottle()
 @Controller('posts')
 export class PostController {
   constructor(
-    public postQueryRepository: PostQueryRepository,
+    public postQueryRepository: PostQueryRepositorySql,
     public postService: PostService,
     public commentsService: CommentsService,
-    public commentQueryRepository: CommentsQueryRepository,
+    public commentQueryRepository: CommentsQueryRepositorySql,
     public helpers: Helpers,
     public jwtService: JwtService,
-    public usersQueryRepository: UsersQueryRepository,
+    public usersQueryRepository: UsersQuerySqlRepository,
     private commandBus: CommandBus,
   ) {}
 
@@ -78,7 +77,7 @@ export class PostController {
 
   @Get(':postId')
   async getPostById(
-    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
+    @Param('postId', new ParseStringPipe()) postId: string,
     @AccessTokenHeader() accessToken: string,
   ): Promise<PostViewModel | NotFoundException | null | number> {
     const currentAccessToken = accessToken ? accessToken : null;
@@ -86,7 +85,7 @@ export class PostController {
       new GetUserIdByAccessTokenCommand(currentAccessToken),
     );
     const foundPost: PostViewModel | null =
-      await this.postQueryRepository.findPostById(postId.toString(), userId);
+      await this.postQueryRepository.findPostById(postId, userId);
     if (foundPost === null)
       return mappingErrorStatus({
         data: null,
@@ -100,11 +99,10 @@ export class PostController {
   @Delete(':postId')
   @HttpCode(204)
   async deletePostById(
-    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
+    @Param('postId', new ParseStringPipe()) postId: string,
   ): Promise<any> {
-    //if (!postId) new NotFoundException();
     const isDeleted: ResultObject<string> = await this.commandBus.execute(
-      new DeletePostCommand(postId.toString()),
+      new DeletePostCommand(postId),
     );
     if (isDeleted.data === null) return mappingErrorStatus(isDeleted);
     return true;
@@ -131,11 +129,11 @@ export class PostController {
   @Put(':postId')
   @HttpCode(204)
   async updatePost(
-    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
+    @Param('postId', new ParseStringPipe()) postId: string,
     @Body() createPostDto: CreatePostWithBlogIdDto,
   ) {
     const PostUpdatedInfo: ResultObject<string> = await this.commandBus.execute(
-      new UpdatePostCommand(postId.toString(), createPostDto),
+      new UpdatePostCommand(postId, createPostDto),
     );
     if (PostUpdatedInfo.data === null)
       return mappingErrorStatus(PostUpdatedInfo);
@@ -145,44 +143,36 @@ export class PostController {
   @UseGuards(JwtAuthGuard)
   @Post(':postId/comments')
   async createCommentForPostById(
-    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
+    @Param('postId', new ParseStringPipe()) postId: string,
     @Body() { content }: CreateCommentDto,
     @UserId() userId: string,
   ) {
     const currentUser = await this.usersQueryRepository.findUserById(userId);
-    if (!currentUser) new UnauthorizedException();
-    const newCommentObjectId: ResultObject<string> =
-      await this.commandBus.execute(
-        new CreateCommentForPostCommand(
-          postId.toString(),
-          currentUser!,
-          content,
-        ),
-      );
-    if (newCommentObjectId.data === null)
-      return mappingErrorStatus(newCommentObjectId);
+    if (!currentUser) throw new UnauthorizedException();
+    const newCommentId: ResultObject<string> = await this.commandBus.execute(
+      new CreateCommentForPostCommand(postId, currentUser!, content),
+    );
+    if (newCommentId.data === null) return mappingErrorStatus(newCommentId);
 
     return await this.commentQueryRepository.getCommentById(
-      newCommentObjectId.data,
-      new Types.ObjectId(currentUser!.id),
+      newCommentId.data,
+      currentUser!.id,
     );
   }
 
   @Get(':postId/comments')
   async getCommentForPostById(
     @QueryData() queryData: queryDataType,
-    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
+    @Param('postId', new ParseStringPipe()) postId: string,
     @AccessTokenHeader() accessToken: string,
-  ): Promise<PaginatorCommentViewType | number> {
+  ): Promise<PaginatorCommentViewType | null> {
     const currentAccessToken = accessToken ? accessToken : null;
 
     const userId = await this.commandBus.execute(
       new GetUserIdByAccessTokenCommand(currentAccessToken),
     );
 
-    const currentPost = await this.postQueryRepository.findPostById(
-      postId.toString(),
-    );
+    const currentPost = await this.postQueryRepository.findPostById(postId);
     if (!currentPost)
       return mappingErrorStatus({
         data: null,
@@ -191,7 +181,7 @@ export class PostController {
       });
 
     return await this.commentQueryRepository.getAllCommentsOfPost(
-      postId.toString(),
+      postId,
       queryData,
       userId,
     );
@@ -200,16 +190,12 @@ export class PostController {
   @Put(':postId/like-status')
   @HttpCode(204)
   async updatePostLikeStatus(
-    @Param('postId', new ParseObjectIdPipe()) postId: Types.ObjectId,
+    @Param('postId', new ParseStringPipe()) postId: string,
     @Body() { likeStatus }: LikeStatusOptionVariable,
     @UserId() userId: string,
   ) {
     const result = await this.commandBus.execute(
-      new UpdatePostLikeStatusByIdCommand(
-        postId.toString(),
-        likeStatus,
-        userId,
-      ),
+      new UpdatePostLikeStatusByIdCommand(postId, likeStatus, userId),
     );
     if (result.data === null) return mappingErrorStatus(result);
     return true;

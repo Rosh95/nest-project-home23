@@ -1,16 +1,15 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { Helpers } from '../../../helpers/helpers';
-import { PostRepository } from '../../post.repository';
 import { LikeStatusOption } from '../../../comments/comments.types';
 import {
   LikeStatus,
-  LikeStatusDBType,
   LikeStatusDocument,
 } from '../../../likeStatus/likeStatus.type';
-import { Model, Types } from 'mongoose';
-import { UsersQueryRepository } from '../../../users/usersQuery.repository';
+import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { UsersQuerySqlRepository } from '../../../users/usersQuery.repository.sql';
+import { PostRepositorySql } from '../../post.repository.sql';
 
 export class UpdatePostLikeStatusByIdCommand {
   constructor(
@@ -25,9 +24,9 @@ export class UpdatePostLikeStatusById
   implements ICommandHandler<UpdatePostLikeStatusByIdCommand>
 {
   constructor(
-    public postRepository: PostRepository,
+    public postRepository: PostRepositorySql,
     public helpers: Helpers,
-    public usersQueryRepository: UsersQueryRepository,
+    public usersQueryRepository: UsersQuerySqlRepository,
     @InjectModel(LikeStatus.name)
     public likeStatusModel: Model<LikeStatusDocument>,
   ) {}
@@ -35,9 +34,7 @@ export class UpdatePostLikeStatusById
   async execute(
     command: UpdatePostLikeStatusByIdCommand,
   ): Promise<ResultObject<string>> {
-    const postInfo = await this.postRepository.getPostById(
-      command.postId.toString(),
-    );
+    const postInfo = await this.postRepository.getPostById(command.postId);
     if (!postInfo) {
       return {
         data: null,
@@ -56,17 +53,16 @@ export class UpdatePostLikeStatusById
       };
     }
 
-    const findPostLikeStatusInDB: LikeStatusDBType | null =
-      await this.likeStatusModel.findOne({
-        entityId: postInfo._id,
-        userId: new Types.ObjectId(currentUser!.id),
-      });
+    const isExistLikeStatusForPost: boolean =
+      await this.postRepository.findLikeStatusForPost(
+        command.postId,
+        command.userId,
+      );
 
-    if (!findPostLikeStatusInDB) {
+    if (!isExistLikeStatusForPost) {
       await this.postRepository.createLikeStatusForPost(
-        postInfo._id,
-        new Types.ObjectId(currentUser!.id),
-        currentUser!.login,
+        postInfo.id,
+        currentUser!.id,
         command.newLikeStatusForComment,
       );
       return {
@@ -75,8 +71,8 @@ export class UpdatePostLikeStatusById
       };
     }
     await this.postRepository.updatePostLikeStatus(
-      postInfo._id,
-      new Types.ObjectId(currentUser!.id),
+      postInfo.id,
+      currentUser!.id,
       command.newLikeStatusForComment,
     );
 

@@ -1,16 +1,14 @@
-import { CommentsRepository } from '../../comments.repository';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { CommentsQueryRepository } from '../../commentsQuery.repository';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { LikeStatusOption } from '../../comments.types';
 import {
   LikeStatus,
-  LikeStatusDBType,
   LikeStatusDocument,
 } from '../../../likeStatus/likeStatus.type';
-import { Model, Types } from 'mongoose';
-import { UsersQueryRepository } from '../../../users/usersQuery.repository';
+import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { CommentsRepositorySql } from '../../comments.repository.sql';
+import { UsersQuerySqlRepository } from '../../../users/usersQuery.repository.sql';
 
 export class UpdateCommentLikeStatusByIdCommand {
   constructor(
@@ -25,9 +23,8 @@ export class UpdateCommentLikeStatusById
   implements ICommandHandler<UpdateCommentLikeStatusByIdCommand>
 {
   constructor(
-    public commentRepository: CommentsRepository,
-    public commentQueryRepository: CommentsQueryRepository,
-    public usersRepository: UsersQueryRepository,
+    public commentRepository: CommentsRepositorySql,
+    public usersRepository: UsersQuerySqlRepository,
     @InjectModel(LikeStatus.name)
     public likeStatusModel: Model<LikeStatusDocument>,
   ) {}
@@ -35,7 +32,7 @@ export class UpdateCommentLikeStatusById
   async execute(
     command: UpdateCommentLikeStatusByIdCommand,
   ): Promise<ResultObject<string>> {
-    const commentInfo = await this.commentQueryRepository.getCommentById(
+    const commentInfo = await this.commentRepository.getCommentById(
       command.commentId,
     );
     if (!commentInfo)
@@ -44,18 +41,16 @@ export class UpdateCommentLikeStatusById
         resultCode: ResultCode.NotFound,
         message: 'couldn`t find comment',
       };
-    const currentUser = await this.usersRepository.findUserById(command.userId);
-    const findLikeStatusInDB: LikeStatusDBType | null =
-      await this.likeStatusModel.findOne({
-        entityId: commentInfo.id,
-        userId: command.userId,
-      });
+    const findLikeStatusInDB: boolean =
+      await this.commentRepository.findLikeStatusForComment(
+        command.commentId,
+        command.userId,
+      );
 
     if (!findLikeStatusInDB) {
-      await this.commentRepository.createLikeStatus(
-        new Types.ObjectId(commentInfo.id),
-        new Types.ObjectId(currentUser!.id),
-        currentUser!.login,
+      await this.commentRepository.createLikeStatusForComment(
+        command.commentId,
+        command.userId,
         command.newLikeStatusForComment,
       );
       return {
@@ -63,18 +58,15 @@ export class UpdateCommentLikeStatusById
         resultCode: ResultCode.NoContent,
       };
     }
-    await this.commentRepository.updateLikeStatus(
-      new Types.ObjectId(commentInfo.id),
-      new Types.ObjectId(currentUser!.id),
+    await this.commentRepository.updateLikeStatusForComments(
+      command.commentId,
+      command.userId,
       command.newLikeStatusForComment,
     );
-
-    //findLikeStatusInDB.likeStatus = newLikeStatusForComment;
 
     return {
       data: 'ok',
       resultCode: ResultCode.NoContent,
     };
-    // return commentRepository.updatedCommentLikeStatusById(commentInfo._id.toString(), newLikeStatusForComment)
   }
 }

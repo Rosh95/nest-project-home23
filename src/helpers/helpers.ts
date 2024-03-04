@@ -40,8 +40,13 @@ export class Helpers {
   // }
 
   async validateOrRejectModel(model: any, ctor: any) {
-    if (model instanceof ctor === false) {
-      throw new Error('Incorrect input data');
+    try {
+      if (model instanceof ctor === false) {
+        throw new Error('Incorrect input data');
+      }
+    } catch (e) {
+      console.log(e);
+      return e.value, e.message;
     }
     try {
       await validateOrReject(model);

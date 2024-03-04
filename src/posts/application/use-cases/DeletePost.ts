@@ -1,8 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { Helpers } from '../../../helpers/helpers';
-import { PostRepository } from '../../post.repository';
-import { PostQueryRepository } from '../../postQuery.repository';
+import { PostRepositorySql } from '../../post.repository.sql';
+import { PostQueryRepositorySql } from '../../postQuery.repository.sql';
 
 export class DeletePostCommand {
   constructor(public postId: string) {}
@@ -11,8 +11,8 @@ export class DeletePostCommand {
 @CommandHandler(DeletePostCommand)
 export class DeletePost implements ICommandHandler<DeletePostCommand> {
   constructor(
-    public postRepository: PostRepository,
-    public postQueryRepository: PostQueryRepository,
+    public postRepository: PostRepositorySql,
+    public postQueryRepository: PostQueryRepositorySql,
     public helpers: Helpers,
   ) {}
 

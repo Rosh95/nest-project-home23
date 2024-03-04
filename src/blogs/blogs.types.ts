@@ -18,6 +18,14 @@ export type BlogDbType = {
   createdAt: Date;
   isMembership: boolean;
 };
+export type BlogDbTypeSql = {
+  id: string;
+  name: string;
+  description: string;
+  websiteUrl: string;
+  createdAt: string;
+  isMembership: boolean;
+};
 
 export type BlogViewType = {
   id: string;

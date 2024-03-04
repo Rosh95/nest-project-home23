@@ -1,12 +1,10 @@
-import { CommentsRepository } from '../../comments.repository';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { getUserViewModel } from '../../../users/user.types';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { PostViewModel } from '../../../posts/post.types';
-import { CommentsDBType, LikeStatusOption } from '../../comments.types';
-import { ObjectId } from 'mongodb';
-import { Types } from 'mongoose';
-import { PostQueryRepository } from '../../../posts/postQuery.repository';
+import { InputCommentsDBTypeSql } from '../../comments.types';
+import { CommentsRepositorySql } from '../../comments.repository.sql';
+import { PostQueryRepositorySql } from '../../../posts/postQuery.repository.sql';
 
 export class CreateCommentForPostCommand {
   constructor(
@@ -21,15 +19,15 @@ export class CreateCommentForPost
   implements ICommandHandler<CreateCommentForPostCommand>
 {
   constructor(
-    public commentRepository: CommentsRepository,
-    public postQueryRepository: PostQueryRepository,
+    public commentRepository: CommentsRepositorySql,
+    public postQueryRepository: PostQueryRepositorySql,
   ) {}
 
   async execute(
     command: CreateCommentForPostCommand,
   ): Promise<ResultObject<string>> {
     const currentPost: PostViewModel | null =
-      await this.postQueryRepository.findPostById(command.postId.toString());
+      await this.postQueryRepository.findPostById(command.postId);
     if (!currentPost) {
       return {
         data: null,
@@ -37,20 +35,10 @@ export class CreateCommentForPost
         message: 'couldn`t find blog',
       };
     }
-    const newComment: CommentsDBType = {
-      _id: new ObjectId(),
+    const newComment: InputCommentsDBTypeSql = {
       content: command.content,
-      commentatorInfo: {
-        userId: new Types.ObjectId(command.currentUser.id).toString(),
-        userLogin: command.currentUser.login,
-      },
+      userId: command.currentUser.id,
       postId: command.postId,
-      createdAt: new Date(),
-      likesInfo: {
-        likesCount: 0,
-        dislikesCount: 0,
-        myStatus: LikeStatusOption.None,
-      },
     };
     const resultId =
       await this.commentRepository.createCommentForPost(newComment);
@@ -63,7 +51,7 @@ export class CreateCommentForPost
     }
 
     return {
-      data: resultId.toString(),
+      data: resultId,
       resultCode: ResultCode.NoContent,
     };
   }

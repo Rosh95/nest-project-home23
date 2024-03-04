@@ -11,53 +11,52 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { BlogService } from './blogs.service';
-import { PostService } from '../posts/post.service';
 import { Helpers, queryDataType } from '../helpers/helpers';
 import { BlogViewType, CreateBlogDto } from './blogs.types';
-import { JwtService } from '../jwt/jwt.service';
 import {
   CreatePostDto,
   PaginatorPostViewType,
   PostViewModel,
 } from '../posts/post.types';
 import { mappingErrorStatus, ResultObject } from '../helpers/heplersType';
-import { ParseObjectIdPipe, ParseStringPipe } from '../pipes/ParseObjectIdPipe';
-import { Types } from 'mongoose';
+import { ParseStringPipe } from '../pipes/ParseObjectIdPipe';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { QueryData } from '../helpers/decorators/helpers.decorator.queryData';
 import { AccessTokenHeader } from '../users/decorators/user.decorator';
 import { CommandBus } from '@nestjs/cqrs';
 import { CreatePostForExistingBlogCommand } from '../posts/application/use-cases/CreatePostForExistingBlog';
-import { CreateBlogCommand } from './application/use-cases/CreateBlog';
 import { DeleteBlogCommand } from './application/use-cases/DeleteBlog';
 import { UpdateBlogCommand } from './application/use-cases/UpdateBlog';
 import { GetUserIdByAccessTokenCommand } from '../jwt/application/use-cases/GetUserIdByAccessToken';
 import { SkipThrottle } from '@nestjs/throttler';
 import { BlogQueryRepositorySql } from './blogQuery.repository.sql';
+import { CreateBlogCommand } from './application/use-cases/CreateBlog';
 import { PostQueryRepositorySql } from '../posts/postQuery.repository.sql';
+import { UpdatePostCommand } from '../posts/application/use-cases/UpdatePost';
+import { DeletePostCommand } from '../posts/application/use-cases/DeletePost';
+import { isPostCreatedByCurrentBlogCommand } from '../posts/application/use-cases/isPostCreatedByCurrentBlog';
 
 @Injectable()
 @SkipThrottle()
-@Controller('blogs')
-export class BlogController {
+@Controller('sa/blogs')
+export class BlogSAController {
   constructor(
-    public blogService: BlogService,
     public blogQueryRepository: BlogQueryRepositorySql,
-    public postService: PostService,
     public postQueryRepository: PostQueryRepositorySql,
-    public jwtService: JwtService,
     public helpers: Helpers,
     private commandBus: CommandBus,
   ) {}
 
+  @UseGuards(BasicAuthGuard)
   @Get()
   async getBlogs(@QueryData() queryData: queryDataType) {
     return await this.blogQueryRepository.getAllBlogs(queryData);
   }
 
+  @UseGuards(BasicAuthGuard)
   @Get(':blogId')
   async getBlogById(@Param('blogId', new ParseStringPipe()) blogId: string) {
+    // if (!blogId) throw new NotFoundException();
     const foundBlog: BlogViewType | null =
       await this.blogQueryRepository.findBlogById(blogId);
     if (foundBlog) {
@@ -71,12 +70,8 @@ export class BlogController {
   @UseGuards(BasicAuthGuard)
   @Delete(':blogId')
   @HttpCode(204)
-  async deleteBlog(
-    @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
-  ) {
-    const result = await this.commandBus.execute(
-      new DeleteBlogCommand(blogId.toString()),
-    );
+  async deleteBlog(@Param('blogId', new ParseStringPipe()) blogId: string) {
+    const result = await this.commandBus.execute(new DeleteBlogCommand(blogId));
     if (result.data === null) return mappingErrorStatus(result);
     return true;
   }
@@ -95,11 +90,11 @@ export class BlogController {
   @Put(':blogId')
   @HttpCode(204)
   async updateBlog(
-    @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
+    @Param('blogId', new ParseStringPipe()) blogId: string,
     @Body() createBlogDto: CreateBlogDto,
   ) {
     const updateBlog: ResultObject<string> = await this.commandBus.execute(
-      new UpdateBlogCommand(blogId.toString(), createBlogDto),
+      new UpdateBlogCommand(blogId, createBlogDto),
     );
     if (updateBlog.data === null) {
       mappingErrorStatus(updateBlog);
@@ -131,11 +126,11 @@ export class BlogController {
   @HttpCode(201)
   async createPostForBlogById(
     @QueryData() queryData: queryDataType,
-    @Param('blogId', new ParseObjectIdPipe()) blogId: Types.ObjectId,
+    @Param('blogId', new ParseStringPipe()) blogId: string,
     @Body() createPostDto: CreatePostDto,
   ) {
     const newPost: ResultObject<string> = await this.commandBus.execute(
-      new CreatePostForExistingBlogCommand(createPostDto, blogId.toString()),
+      new CreatePostForExistingBlogCommand(createPostDto, blogId),
     );
     if (newPost.data === null) {
       return mappingErrorStatus(newPost);
@@ -144,5 +139,62 @@ export class BlogController {
       ? await this.postQueryRepository.findPostById(newPost.data)
       : null;
     return gotNewPost;
+  }
+
+  @UseGuards(BasicAuthGuard)
+  @Put(':blogId/posts/:postId')
+  @HttpCode(204)
+  async updatePostForBlogByIdAndPostId(
+    @QueryData() queryData: queryDataType,
+    @Param('blogId', new ParseStringPipe()) blogId: string,
+    @Param('postId', new ParseStringPipe()) postId: string,
+    @Body() updateDataPost: CreatePostDto,
+  ) {
+    const isPostCreatedByCurrentBlog: ResultObject<string> =
+      await this.commandBus.execute(
+        new isPostCreatedByCurrentBlogCommand(blogId, postId),
+      );
+    if (isPostCreatedByCurrentBlog.data === null)
+      return mappingErrorStatus(isPostCreatedByCurrentBlog);
+
+    const PostUpdatedInfo: ResultObject<string> = await this.commandBus.execute(
+      new UpdatePostCommand(postId, { blogId, ...updateDataPost }),
+    );
+    if (PostUpdatedInfo.data === null)
+      return mappingErrorStatus(PostUpdatedInfo);
+    return true;
+
+    // const newPost: ResultObject<string> = await this.commandBus.execute(
+    //   new CreatePostForExistingBlogCommand(createPostDto, blogId),
+    // );
+    // if (newPost.data === null) {
+    //   return mappingErrorStatus(newPost);
+    // }
+    // const gotNewPost: PostViewModel | null = newPost.data
+    //   ? await this.postQueryRepository.findPostById(newPost.data)
+    //   : null;
+    // return gotNewPost;
+  }
+
+  @UseGuards(BasicAuthGuard)
+  @Delete(':blogId/posts/:postId')
+  @HttpCode(204)
+  async deletePostForBlogByIdAndPostId(
+    @QueryData() queryData: queryDataType,
+    @Param('blogId', new ParseStringPipe()) blogId: string,
+    @Param('postId', new ParseStringPipe()) postId: string,
+  ) {
+    const isPostCreatedByCurrentBlog: ResultObject<string> =
+      await this.commandBus.execute(
+        new isPostCreatedByCurrentBlogCommand(blogId, postId),
+      );
+    if (isPostCreatedByCurrentBlog.data === null)
+      return mappingErrorStatus(isPostCreatedByCurrentBlog);
+    const PostUpdatedInfo: ResultObject<string> = await this.commandBus.execute(
+      new DeletePostCommand(postId),
+    );
+    if (PostUpdatedInfo.data === null)
+      return mappingErrorStatus(PostUpdatedInfo);
+    return true;
   }
 }

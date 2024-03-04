@@ -2,8 +2,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { Helpers } from '../../../helpers/helpers';
 import { CreateBlogDto } from '../../../blogs/blogs.types';
-import { BlogRepository } from '../../blog.repository';
-import { BlogQueryRepository } from '../../blogQuery.repository';
+import { BlogQueryRepositorySql } from '../../blogQuery.repository.sql';
+import { BlogRepositorySql } from '../../blog.repository.sql';
 
 export class UpdateBlogCommand {
   constructor(
@@ -15,8 +15,8 @@ export class UpdateBlogCommand {
 @CommandHandler(UpdateBlogCommand)
 export class UpdateBlog implements ICommandHandler<UpdateBlogCommand> {
   constructor(
-    protected blogRepository: BlogRepository,
-    protected blogQueryRepository: BlogQueryRepository,
+    protected blogRepository: BlogRepositorySql,
+    protected blogQueryRepository: BlogQueryRepositorySql,
     public helpers: Helpers,
   ) {}
 

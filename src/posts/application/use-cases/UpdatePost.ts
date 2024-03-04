@@ -1,9 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { Helpers } from '../../../helpers/helpers';
-import { PostRepository } from '../../post.repository';
 import { CreatePostWithBlogIdDto } from '../../post.types';
-import { PostQueryRepository } from '../../postQuery.repository';
+import { PostRepositorySql } from '../../post.repository.sql';
+import { PostQueryRepositorySql } from '../../postQuery.repository.sql';
 
 export class UpdatePostCommand {
   constructor(
@@ -15,16 +15,16 @@ export class UpdatePostCommand {
 @CommandHandler(UpdatePostCommand)
 export class UpdatePost implements ICommandHandler<UpdatePostCommand> {
   constructor(
-    public postRepository: PostRepository,
-    public postQueryRepository: PostQueryRepository,
+    public postRepository: PostRepositorySql,
+    public postQueryRepository: PostQueryRepositorySql,
     public helpers: Helpers,
   ) {}
 
   async execute(command: UpdatePostCommand): Promise<ResultObject<string>> {
-    await this.helpers.validateOrRejectModel(
-      command.updatedPostData,
-      CreatePostWithBlogIdDto,
-    );
+    // await this.helpers.validateOrRejectModel(
+    //   command.updatedPostData,
+    //   CreatePostWithBlogIdDto,
+    // );
 
     const isExistPost = await this.postQueryRepository.findPostById(
       command.postId,

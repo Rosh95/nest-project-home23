@@ -1,7 +1,7 @@
-import { CommentsRepository } from '../../comments.repository';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { CommentsQueryRepository } from '../../commentsQuery.repository';
 import { ResultCode, ResultObject } from '../../../helpers/heplersType';
+import { CommentsRepositorySql } from '../../comments.repository.sql';
+import { CommentsQueryRepositorySql } from '../../commentsQuery.repository.sql';
 
 export class UpdateCommentByIdCommand {
   constructor(
@@ -16,14 +16,14 @@ export class UpdateCommentById
   implements ICommandHandler<UpdateCommentByIdCommand>
 {
   constructor(
-    public commentRepository: CommentsRepository,
-    public commentQueryRepository: CommentsQueryRepository,
+    public commentRepository: CommentsRepositorySql,
+    public commentQueryRepository: CommentsQueryRepositorySql,
   ) {}
 
   async execute(
     command: UpdateCommentByIdCommand,
   ): Promise<ResultObject<string>> {
-    const commentInfo = await this.commentQueryRepository.getCommentById(
+    const commentInfo = await this.commentRepository.getCommentById(
       command.commentId,
     );
     if (!commentInfo)
@@ -32,7 +32,7 @@ export class UpdateCommentById
         resultCode: ResultCode.NotFound,
         message: 'couldn`t find comment',
       };
-    if (commentInfo.commentatorInfo.userId !== command.userId) {
+    if (commentInfo.userId !== command.userId) {
       return {
         data: null,
         resultCode: ResultCode.Forbidden,

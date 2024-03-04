@@ -26,9 +26,9 @@ export class UserSqlRepository {
 
   async createUser(newUser: any): Promise<string | null> {
     const query = `
-INSERT INTO public."Users"(
- login, email, "passwordHash", "passwordSalt")
-VALUES ( $1, $2, $3, $4);
+    INSERT INTO public."Users"(
+     login, email, "passwordHash", "passwordSalt")
+    VALUES ( $1, $2, $3, $4);
     `;
     await this.dataSource.query(query, [
       newUser.login,

@@ -3,7 +3,7 @@ import { ResultCode, ResultObject } from '../../../helpers/heplersType';
 import { Helpers } from '../../../helpers/helpers';
 import { BlogDbType, CreateBlogDto } from '../../../blogs/blogs.types';
 import { ObjectId } from 'mongodb';
-import { BlogRepository } from '../../blog.repository';
+import { BlogRepositorySql } from '../../blog.repository.sql';
 
 export class CreateBlogCommand {
   constructor(public blogData: CreateBlogDto) {}
@@ -12,7 +12,7 @@ export class CreateBlogCommand {
 @CommandHandler(CreateBlogCommand)
 export class CreateBlog implements ICommandHandler<CreateBlogCommand> {
   constructor(
-    protected blogRepository: BlogRepository,
+    protected blogRepository: BlogRepositorySql,
     public helpers: Helpers,
   ) {}
 

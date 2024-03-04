@@ -24,12 +24,8 @@ export class GetUserIdByAccessToken
         exp: number;
       };
 
-      console.log(result.iat + ' iat');
-      console.log(result.exp + ' exp');
-      console.log(new Date().getTime() / 1000 + ' currenttime');
-      const result22 = result.exp < new Date().getTime() / 1000;
-      console.log(result22);
-      if (result22) {
+      const isExpired = result.exp < new Date().getTime() / 1000;
+      if (isExpired) {
         return null;
       }
     } catch (e) {
