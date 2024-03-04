@@ -208,7 +208,7 @@ export class PostQueryRepositorySql {
         `
         SELECT id, "postId", "userId", "likeStatus", "createdAt"
         FROM public."LikeStatusForPosts"
-        WHERE id = $1 AND "userId" = $2 
+        WHERE "postId" = $1 AND "userId" = $2 
     `,
         [postId, userId],
       );

@@ -140,7 +140,7 @@ export class CommentsQueryRepositorySql {
         `
         SELECT id, "commentId", "userId", "likeStatus", "createdAt"
         FROM public."LikeStatusForComments"
-        WHERE id = $1 AND "userId" = $2 
+        WHERE "commentId" = $1 AND "userId" = $2 
     `,
         [commentId, userId],
       );
