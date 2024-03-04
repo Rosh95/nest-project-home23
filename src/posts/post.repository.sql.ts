@@ -105,7 +105,7 @@ export class PostRepositorySql {
     `,
       [postId, userId],
     );
-    return foundLikeStatus[1] ? true : false;
+    return foundLikeStatus[0] ? true : false;
   }
 
   async createLikeStatusForPost(
