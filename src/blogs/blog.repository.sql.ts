@@ -70,7 +70,8 @@ export class BlogRepositorySql {
       `
     UPDATE public."Blogs"
     SET  name= $2, description= $3, "websiteUrl"= $4
-    WHERE id = $1;
+    WHERE id = $1
+    RETURNING *
     `,
       [
         blogId,
@@ -79,7 +80,7 @@ export class BlogRepositorySql {
         blogUpdateData.websiteUrl,
       ],
     );
-    return updatedBlog[1] ? true : false;
+    return updatedBlog[0] ? true : false;
 
     // const result = await this.blogModel.updateOne(
     //   { _id: new ObjectId(blogId) },

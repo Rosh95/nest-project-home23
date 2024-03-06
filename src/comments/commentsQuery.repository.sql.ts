@@ -28,30 +28,40 @@ export class CommentsQueryRepositorySql {
     queryData: queryDataType,
     userId?: string | null,
   ): Promise<PaginatorCommentViewType | null> {
-    // const filter: FilterQuery<CommentsDBType> = { postId: postId };
-    //
-    // const comments = await this.commentModel
-    //   .find(filter)
-    //   .sort({ [queryData.sortBy]: queryData.sortDirection })
-    //   .skip(queryData.skippedPages)
-    //   .limit(queryData.pageSize)
-    //   .lean();
-
+    const sortBy = [
+      'id',
+      'userLogin',
+      'userId',
+      'content',
+      'createdAt',
+    ].includes(queryData.sortBy)
+      ? queryData.sortBy
+      : 'createdAt';
+    const sortDirection = queryData.sortDirection === 1 ? 'asc' : 'desc';
     const isExistPost = await this.postQueryRepository.findPostById(postId);
     if (!isExistPost) return null;
 
-    const comments = await this.dataSource.query(`
+    const comments = await this.dataSource.query(
+      `
         SELECT c.id, content, "postId", "userId", c."createdAt", u.login as "userLogin"
         FROM public."Comments" c
         LEFT JOIN public."Users" u ON u.id = c."userId"
-    `);
+        WHERE "postId" = $3
+        ORDER BY "${sortBy}" ${sortDirection}
+        LIMIT $1 OFFSET $2
+    `,
+      [`${queryData.pageSize}`, `${queryData.skippedPages}`, postId],
+    );
 
     const commentViewArray: CommentsViewModel[] = await Promise.all(
       comments.map(async (comment) => {
         return await this.commentsSqlMapping(comment, userId);
       }),
     );
-    const pagesCount = await this.countTotalCommentsAndPages(queryData);
+    const pagesCount = await this.countTotalCommentsAndPagesOfPost(
+      postId,
+      queryData,
+    );
 
     return {
       pagesCount: pagesCount.commentsPagesCount,
@@ -81,10 +91,17 @@ export class CommentsQueryRepositorySql {
     }
     return null;
   }
-  private async countTotalCommentsAndPages(queryData: queryDataType) {
-    let commentsTotalCount = await this.dataSource.query(`
+  private async countTotalCommentsAndPagesOfPost(
+    postId: string,
+    queryData: queryDataType,
+  ) {
+    let commentsTotalCount = await this.dataSource.query(
+      `
         SELECT COUNT(*) FROM public."Comments"
-    `);
+        WHERE "postId" = $1
+    `,
+      [postId],
+    );
     commentsTotalCount = commentsTotalCount[0]
       ? commentsTotalCount[0].count
       : 0;
@@ -135,7 +152,7 @@ export class CommentsQueryRepositorySql {
       [userId],
     );
     let currentStatus;
-    if (currentUserId[0]) {
+    if (currentUserId.id) {
       const result = await this.dataSource.query(
         `
         SELECT id, "commentId", "userId", "likeStatus", "createdAt"

@@ -37,20 +37,20 @@ describe('CommentsController (e2e)', () => {
 
     httpServer = app.getHttpServer();
 
-    await request(httpServer).delete('/testing/all-data');
+    //  await request(httpServer).delete('/testing/all-data');
   });
 
   afterAll(async () => {
     await app.close();
   });
-  beforeEach(async () => {
-    await request(httpServer).delete('/testing/all-data');
-  });
+  // beforeEach(async () => {
+  //   await request(httpServer).delete('/testing/all-data');
+  // });
 
   describe('Comments router testing', () => {
-    beforeEach(async () => {
-      await request(httpServer).delete('/testing/all-data');
-    });
+    // beforeEach(async () => {
+    //   await request(httpServer).delete('/testing/all-data');
+    // });
 
     const createVasyaData = (number: number) => {
       const registrationData: CreateUserDto = {

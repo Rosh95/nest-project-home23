@@ -119,12 +119,14 @@ export class PostQueryRepositorySql {
     const query = `
     SELECT id, title, "shortDescription", content, "blogId", "createdAt"
     FROM public."Posts"
+    WHERE "blogId" = $3
     ORDER BY "${sortBy}" ${sortDirection}
     LIMIT $1 OFFSET $2
     `;
     const postData: PostDBModelSql[] = await this.dataSource.query(query, [
       `${queryData.pageSize}`,
       `${queryData.skippedPages}`,
+      blogId,
     ]);
     const postViewArray: PostViewModel[] = await Promise.all(
       postData.map(async (post) => this.postMappingSql(post, userId)),
@@ -198,12 +200,12 @@ export class PostQueryRepositorySql {
       `
         SELECT id, "postId", "userId", "likeStatus", "createdAt"
         FROM public."LikeStatusForPosts"
-        WHERE "userId" = $1
+        WHERE "userId" = $1 
     `,
       [userId],
     );
     let currentStatus;
-    if (currentUserId[0]) {
+    if (currentUserId) {
       const result = await this.dataSource.query(
         `
         SELECT id, "postId", "userId", "likeStatus", "createdAt"

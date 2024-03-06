@@ -61,8 +61,8 @@ export class UpdatePostLikeStatusById
 
     if (!isExistLikeStatusForPost) {
       await this.postRepository.createLikeStatusForPost(
-        postInfo.id,
-        currentUser!.id,
+        command.postId,
+        command.userId,
         command.newLikeStatusForComment,
       );
       return {
@@ -71,8 +71,8 @@ export class UpdatePostLikeStatusById
       };
     }
     await this.postRepository.updatePostLikeStatus(
-      postInfo.id,
-      currentUser!.id,
+      command.postId,
+      command.userId,
       command.newLikeStatusForComment,
     );
 

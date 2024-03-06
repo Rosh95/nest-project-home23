@@ -34,11 +34,12 @@ export class PostRepositorySql {
   }
 
   async createPost(newPost: PostInputTypeToDBSql): Promise<string> {
-    await this.dataSource.query(
+    const newPostId = await this.dataSource.query(
       `
         INSERT INTO public."Posts"(
         title, "shortDescription", content, "blogId")
-        VALUES ($1, $2, $3, $4);
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
     `,
       [
         newPost.title,
@@ -48,16 +49,7 @@ export class PostRepositorySql {
       ],
     );
 
-    const foundNewCreatedPost = await this.dataSource.query(
-      `
-        SELECT id, title, "shortDescription", content, "blogId", "createdAt"
-        FROM public."Posts"
-        WHERE title = $1  AND "shortDescription" = $2 AND "blogId" = $3
-    `,
-      [newPost.title, newPost.shortDescription, newPost.blogId],
-    );
-
-    return foundNewCreatedPost[0].id;
+    return newPostId[0].id;
   }
 
   async getPostById(postId: string): Promise<PostDBModelSql | null> {
@@ -81,7 +73,8 @@ export class PostRepositorySql {
       `
     UPDATE public."Posts"
     SET title= $2, "shortDescription"= $3, content= $4
-    WHERE id = $1;
+    WHERE id = $1
+    RETURNING *
     `,
       [
         postId,
@@ -90,7 +83,7 @@ export class PostRepositorySql {
         updatedPostData.content,
       ],
     );
-    return updatedPosted[1] ? true : false;
+    return updatedPosted[0] ? true : false;
   }
 
   async findLikeStatusForPost(
@@ -113,15 +106,16 @@ export class PostRepositorySql {
     userId: string,
     likeStatus: LikeStatusOption,
   ) {
-    await this.dataSource.query(
+    const newLikeStatus = await this.dataSource.query(
       `
     INSERT INTO public."LikeStatusForPosts"(
      "postId", "userId", "likeStatus")
-    VALUES ($1, $2, $3);
+     VALUES ($1, $2, $3)
+     RETURNING *
     `,
       [postId, userId, likeStatus],
     );
-    return true;
+    return !!newLikeStatus[0];
   }
 
   async updatePostLikeStatus(
@@ -129,14 +123,15 @@ export class PostRepositorySql {
     userId: string,
     likeStatus: LikeStatusOption,
   ) {
-    await this.dataSource.query(
+    const updateLikeStatus = await this.dataSource.query(
       `
       UPDATE public."LikeStatusForPosts"
       SET  "likeStatus"= $3
       WHERE "postId" = $1 AND "userId" = $2 
+      RETURNING *
     `,
       [postId, userId, likeStatus],
     );
-    return true;
+    return !!updateLikeStatus[0];
   }
 }

@@ -21,24 +21,26 @@ export class CommentsRepositorySql {
   async createCommentForPost(
     newComment: InputCommentsDBTypeSql,
   ): Promise<string> {
-    await this.dataSource.query(
+    const createdCommentId = await this.dataSource.query(
       `
     INSERT INTO public."Comments"(
      content, "postId", "userId")
     VALUES ($1, $2, $3)    
+    RETURNING *
     `,
       [newComment.content, newComment.postId, newComment.userId],
     );
+    return createdCommentId[0].id ? createdCommentId[0].id : null;
 
-    const createdComment = await this.dataSource.query(
-      `
-      SELECT id, content, "postId", "userId", "createdAt"
-      FROM public."Comments"
-      WHERE  content = $1 AND "postId" = $2 AND "userId" =$3
-    `,
-      [newComment.content, newComment.postId, newComment.userId],
-    );
-    return createdComment[0].id;
+    // const createdComment = await this.dataSource.query(
+    //   `
+    //   SELECT id, content, "postId", "userId", "createdAt"
+    //   FROM public."Comments"
+    //   WHERE  content = $1 AND "postId" = $2 AND "userId" =$3
+    // `,
+    //   [newComment.content, newComment.postId, newComment.userId],
+    // );
+    // return createdComment[0].id;
     // const result = await this.commentModel.create(newComment);
     // return result._id;
   }
@@ -66,10 +68,11 @@ export class CommentsRepositorySql {
       `
       DELETE FROM public."Comments"
       WHERE id = $1
+      RETURNING *
     `,
       [commentId],
     );
-    return deletedComment[1] ? true : false;
+    return !!deletedComment[0];
 
     // const result = await this.commentModel.deleteOne({
     //   _id: new ObjectId(commentId),
@@ -83,11 +86,12 @@ export class CommentsRepositorySql {
       `
       UPDATE public."Comments"
       SET content = $1
-      WHERE id = $2;
+      WHERE id = $2
+      RETURNING *
      `,
       [commentContent, commentId],
     );
-    return !!updatedComment[1];
+    return !!updatedComment[0];
     // await this.commentModel.findByIdAndUpdate(commentId, {
     //   $set: {
     //     content: commentContent,
@@ -119,22 +123,23 @@ export class CommentsRepositorySql {
     `,
       [commentId, userId],
     );
-    return !!foundLikeStatus[0];
+    return !!foundLikeStatus;
   }
   async createLikeStatusForComment(
     commentId: string,
     userId: string,
     likeStatus: LikeStatusOption,
   ) {
-    await this.dataSource.query(
+    const createdLikeStatusForPost = await this.dataSource.query(
       `
     INSERT INTO public."LikeStatusForComments"(
      "commentId", "userId", "likeStatus")
-    VALUES ($1, $2, $3);
+    VALUES ($1, $2, $3)
+    RETURNING *    
     `,
       [commentId, userId, likeStatus],
     );
-    return true;
+    return !!createdLikeStatusForPost[0];
   }
 
   async updateLikeStatusForComments(
@@ -142,14 +147,15 @@ export class CommentsRepositorySql {
     userId: string,
     likeStatus: LikeStatusOption,
   ) {
-    await this.dataSource.query(
+    const updatedLikeStatus = await this.dataSource.query(
       `
       UPDATE public."LikeStatusForComments"
       SET  "likeStatus"= $3
       WHERE "commentId" = $1 AND "userId" = $2 
+      RETURNING *    
     `,
       [commentId, userId, likeStatus],
     );
-    return true;
+    return !!updatedLikeStatus[0];
   }
 }
