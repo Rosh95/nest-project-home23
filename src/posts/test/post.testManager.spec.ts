@@ -42,4 +42,44 @@ export const postsTestManager = {
     }
     return { response, createdEntity };
   },
+
+  async createBlogAndPostForHimFromBlog(
+    server,
+    data: postInputDataModelForExistingBlog,
+    blogId: string,
+    expectedStatusCode: ResultCode = ResultCode.Created,
+  ) {
+    // const dataPost = {
+    //   title: data.title,
+    //   shortDescription: data.shortDescription,
+    //   content: data.content,
+    //   blogId: blogId,
+    // };
+    const response = await request(server)
+      .post(`/sa/blogs/${blogId}/posts`)
+      .auth('admin', 'qwerty')
+      .send(data)
+      .expect(expectedStatusCode);
+    let createdEntity;
+
+    if (expectedStatusCode === ResultCode.Created) {
+      createdEntity = response.body;
+      expect(createdEntity).toEqual({
+        id: expect.any(String),
+        title: data.title,
+        shortDescription: data.shortDescription,
+        content: data.content,
+        blogId: blogId,
+        blogName: createdEntity.blogName,
+        createdAt: expect.any(String),
+        extendedLikesInfo: {
+          dislikesCount: 0,
+          likesCount: 0,
+          myStatus: 'None',
+          newestLikes: [],
+        },
+      });
+    }
+    return { response, createdEntity };
+  },
 };

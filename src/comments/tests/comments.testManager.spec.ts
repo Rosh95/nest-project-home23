@@ -1,25 +1,25 @@
 import { ResultCode } from '../../helpers/heplersType';
 import request from 'supertest';
-import {
-  CreateCommentDto,
-  postInputDataModelForExistingBlog,
-} from '../../posts/post.types';
+import { postInputDataModelForExistingBlog } from '../../posts/post.types';
 import { BlogInputModel } from '../../blogs/blogs.types';
 import { blogsTestManager } from '../../blogs/test/blog.testManager.spec';
 import { postsTestManager } from '../../posts/test/post.testManager.spec';
 import { AuthTestManager } from '../../auth/tests/auth.testManager.spec';
 import { createVasyaDataForRegistAndLogin } from '../../../test/test.helper';
+import { LikeStatusOptionVariable } from '../comments.types';
 
 export const CommentTestManager = {
-  async createComment(
+  async createLikeStatusForComment(
     server: string,
-    postId: string,
-    content: CreateCommentDto,
+    commentId: string,
+    accessToken: string,
+    likeStatus: LikeStatusOptionVariable,
     expectedStatusCode: ResultCode = ResultCode.NoContent,
   ) {
     const response = await request(server)
-      .post(`/posts/${postId}/comments`)
-      .send(content)
+      .put(`comments/${commentId}/like-status`)
+      .set({ Authorization: `Bearer ${accessToken}` })
+      .send(likeStatus)
       .expect(expectedStatusCode);
 
     return response;

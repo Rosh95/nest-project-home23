@@ -192,8 +192,12 @@ export class PostController {
   async updatePostLikeStatus(
     @Param('postId', new ParseStringPipe()) postId: string,
     @Body() { likeStatus }: LikeStatusOptionVariable,
+    //  @AccessTokenHeader() accessToken: string,
     @UserId() userId: string,
   ) {
+    // const userId = await this.commandBus.execute(
+    //   new GetUserIdByAccessTokenCommand(accessToken),
+    // );
     const result = await this.commandBus.execute(
       new UpdatePostLikeStatusByIdCommand(postId, likeStatus, userId),
     );

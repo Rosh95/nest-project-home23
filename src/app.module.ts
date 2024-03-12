@@ -239,6 +239,16 @@ const useCases = [
       entities: [],
       synchronize: false,
     }),
+    // TypeOrmModule.forRoot({
+    //   type: 'postgres',
+    //   host: 'localhost',
+    //   port: 5432,
+    //   username: 'postgres',
+    //   password: 'sa',
+    //   database: 'SocialNetwork2',
+    //   entities: [],
+    //   synchronize: false,
+    // }),
   ],
   controllers: [
     AppController,

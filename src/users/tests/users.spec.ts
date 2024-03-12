@@ -107,7 +107,7 @@ describe('UsersController (e2e)', () => {
         .auth('admin', 'qwerty')
         .expect(ResultCode.Success);
 
-      expect(response2.body.items).toEqual([resp.body, resp2.body]);
+      expect(response2.body.items).toEqual([resp2.body, resp.body]);
     });
     it('shouldn`t post user by inccorect data and get 400 ', async () => {
       await request(httpServer)

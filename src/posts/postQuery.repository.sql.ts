@@ -169,10 +169,10 @@ export class PostQueryRepositorySql {
   }
   async getAllPostCountOfBlog(blogId: string): Promise<number> {
     const query = `
-    SELECT COUNT(*) FROM public."Posts"
-    WHERE "blogId" = '${blogId}'
+    SELECT COUNT(*) FROM public."Posts" 
+    WHERE "blogId" = $1
     `;
-    const blogsData = await this.dataSource.query(query);
+    const blogsData = await this.dataSource.query(query, [blogId]);
     return blogsData[0].count;
 
     // return this.postModel.countDocuments({ blogId: blogId });

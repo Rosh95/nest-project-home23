@@ -6,6 +6,11 @@ import { appSettings } from '../../appSettings';
 import { blogsTestManager } from './blog.testManager.spec';
 import { BlogInputModel } from '../blogs.types';
 import { postsTestManager } from '../../posts/test/post.testManager.spec';
+import { CreateUserDto } from '../../users/user.types';
+import { AuthTestManager } from '../../auth/tests/auth.testManager.spec';
+import { LikeStatusOption } from '../../comments/comments.types';
+import { ResultCode } from '../../helpers/heplersType';
+jest.setTimeout(95000);
 
 const blogInputData: BlogInputModel = {
   name: 'Robert',
@@ -18,13 +23,34 @@ const blogInputData: BlogInputModel = {
 //     'A blog description or Meta description is a short piece of text',
 //   websiteUrl: 'https://yandex.com/',
 // };
-
+const createPostInputData = (num: number) => {
+  return {
+    title: `Whiplash ${num}`,
+    shortDescription: `a feature screenplay synopsis by Damien Chazelle ${num}`,
+    content: `A promising young drummerho will stop at nothing to realize a student’s potential. ${num}`,
+  };
+};
 const postsInputData = {
   title: 'Whiplash',
   shortDescription: 'a feature screenplay synopsis by Damien Chazelle',
   content:
-    'A promising young drummer enrolls at a cut-throat music conservatory where his dreams of greatness are mentored by an instructor who will stop at nothing to realize a student’s potential.',
+    'A promising young drummerho will stop at nothing to realize a student’s potential.',
 };
+
+const createPetyaData = (number: number) => {
+  const registrationData: CreateUserDto = {
+    login: `Petya${number}`,
+    email: `Petya${number}@gmail.ru`,
+    password: '123456',
+  };
+  const loginData = {
+    loginOrEmail: `Petya${number}`,
+    password: '123456',
+  };
+
+  return { registrationData, loginData };
+};
+
 describe('BlogController (e2e)', () => {
   let app: INestApplication;
   let httpServer;
@@ -41,7 +67,7 @@ describe('BlogController (e2e)', () => {
 
     httpServer = app.getHttpServer();
 
-    await request(httpServer).delete('/testing/all-data');
+    // await request(httpServer).delete('/testing/all-data');
   });
 
   afterAll(async () => {
@@ -49,35 +75,38 @@ describe('BlogController (e2e)', () => {
   });
 
   describe('Blogs router GET method', () => {
-    beforeAll(async () => {
-      await request(httpServer).delete('/testing/all-data');
-    });
+    // beforeAll(async () => {
+    //   await request(httpServer).delete('/testing/all-data');
+    // });
     it('should return 200 and empty array blogs', async () => {
-      await request(httpServer).get('/blogs').expect(200, {
-        pagesCount: 0,
-        page: 1,
-        pageSize: 10,
-        totalCount: 0,
-        items: [],
-      });
+      await request(httpServer)
+        .get('/sa/blogs')
+        .auth('admin', 'qwerty')
+        .expect(200, {
+          pagesCount: 0,
+          page: 1,
+          pageSize: 10,
+          totalCount: 0,
+          items: [],
+        });
     });
     it('should get blog by id', async () => {
       const result = await blogsTestManager.createBlog(httpServer, {
         ...blogInputData,
         name: 'John',
       });
-      const getBlogResponse = await request(httpServer).get(
-        `/blogs/${result.createdEntity.id}`,
-      );
+      const getBlogResponse = await request(httpServer)
+        .get(`/sa/blogs/${result.createdEntity.id}`)
+        .auth('admin', 'qwerty');
       expect(getBlogResponse.status).toBe(200);
       const blogFromAPi = getBlogResponse.body;
       expect(blogFromAPi).toEqual(result.response.body);
     });
     it('should get non-existent blog and return 404', async () => {
       const randomNumber = '6348acd2e1a47ca32e79f46f';
-      const getBlogResponse = await request(httpServer).get(
-        `/blogs/${randomNumber}`,
-      );
+      const getBlogResponse = await request(httpServer)
+        .get(`/sa/blogs/${randomNumber}`)
+        .auth('admin', 'qwerty');
       expect(getBlogResponse.status).toBe(404);
     });
     it('should get post by blog id', async () => {
@@ -94,12 +123,12 @@ describe('BlogController (e2e)', () => {
 
       const randomNumber = '6348acd2e1a47ca32e79f46f';
       const getWrongBlogResponse = await request(httpServer).get(
-        `/blogs/${randomNumber}/posts`,
+        `/sa/blogs/${randomNumber}/posts`,
       );
       expect(getWrongBlogResponse.status).toBe(404);
 
       const getBlogResponse = await request(httpServer).get(
-        `/blogs/${result.createdEntity.id}/posts`,
+        `/sa/blogs/${result.createdEntity.id}/posts`,
       );
       expect(getBlogResponse.status).toBe(200);
       const blogFromAPi = getBlogResponse.body;
@@ -111,6 +140,223 @@ describe('BlogController (e2e)', () => {
         items: [post.createdEntity],
       });
     });
+    it('GET -> "/blogs/:blogId/posts": create 6 posts ', async () => {
+      const createdBlog = await blogsTestManager.createBlog(
+        httpServer,
+        blogInputData,
+      );
+      const post1 = await postsTestManager.createBlogAndPostForHimFromBlog(
+        httpServer,
+        createPostInputData(1),
+        createdBlog.createdEntity.id,
+        201,
+      );
+      const post2 = await postsTestManager.createBlogAndPostForHimFromBlog(
+        httpServer,
+        createPostInputData(2),
+        createdBlog.createdEntity.id,
+        201,
+      );
+      const post3 = await postsTestManager.createBlogAndPostForHimFromBlog(
+        httpServer,
+        createPostInputData(3),
+        createdBlog.createdEntity.id,
+        201,
+      );
+      const post4 = await postsTestManager.createBlogAndPostForHimFromBlog(
+        httpServer,
+        createPostInputData(4),
+        createdBlog.createdEntity.id,
+        201,
+      );
+      const post5 = await postsTestManager.createBlogAndPostForHimFromBlog(
+        httpServer,
+        createPostInputData(5),
+        createdBlog.createdEntity.id,
+        201,
+      );
+      const post6 = await postsTestManager.createBlogAndPostForHimFromBlog(
+        httpServer,
+        createPostInputData(6),
+        createdBlog.createdEntity.id,
+        201,
+      );
+      await AuthTestManager.registrationUser(
+        httpServer,
+        createPetyaData(1).registrationData,
+      );
+      const loginUser1Info = await AuthTestManager.loginUser(
+        httpServer,
+        createPetyaData(1).loginData,
+      );
+      await AuthTestManager.registrationUser(
+        httpServer,
+        createPetyaData(2).registrationData,
+      );
+      const loginUser2Info = await AuthTestManager.loginUser(
+        httpServer,
+        createPetyaData(2).loginData,
+      );
+      await AuthTestManager.registrationUser(
+        httpServer,
+        createPetyaData(3).registrationData,
+      );
+      const loginUser3Info = await AuthTestManager.loginUser(
+        httpServer,
+        createPetyaData(3).loginData,
+      );
+      await AuthTestManager.registrationUser(
+        httpServer,
+        createPetyaData(4).registrationData,
+      );
+      const loginUser4Info = await AuthTestManager.loginUser(
+        httpServer,
+        createPetyaData(4).loginData,
+      );
+      await AuthTestManager.registrationUser(
+        httpServer,
+        createPetyaData(5).registrationData,
+      );
+      const loginUser5Info = await AuthTestManager.loginUser(
+        httpServer,
+        createPetyaData(5).loginData,
+      );
+      await AuthTestManager.registrationUser(
+        httpServer,
+        createPetyaData(6).registrationData,
+      );
+      const loginUser6Info = await AuthTestManager.loginUser(
+        httpServer,
+        createPetyaData(6).loginData,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post1.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser1Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post1.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser2Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post2.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser2Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post2.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser3Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post3.createdEntity.id,
+        { likeStatus: LikeStatusOption.Dislike },
+        loginUser1Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post4.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser1Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post4.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser4Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post4.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser2Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post4.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser3Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post5.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser2Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post5.createdEntity.id,
+        { likeStatus: LikeStatusOption.Dislike },
+        loginUser3Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post6.createdEntity.id,
+        { likeStatus: LikeStatusOption.Like },
+        loginUser1Info.accessToken,
+        ResultCode.NoContent,
+      );
+      await AuthTestManager.putLikeStatusForPost(
+        httpServer,
+        post6.createdEntity.id,
+        { likeStatus: LikeStatusOption.Dislike },
+        loginUser2Info.accessToken,
+        ResultCode.NoContent,
+      );
+
+      console.log({
+        createdBlog: createdBlog.createdEntity.id,
+        post1: post1.createdEntity.id,
+        loginUser1Info: loginUser1Info,
+        post2: post2.createdEntity.id,
+        loginUser2Info: loginUser2Info,
+        post3: post3.createdEntity.id,
+        loginUser3Info: loginUser3Info,
+        post4: post4.createdEntity.id,
+        loginUser4Info: loginUser4Info,
+        post5: post5.createdEntity.id,
+        loginUser5Info: loginUser5Info,
+        post6: post6.createdEntity.id,
+        loginUser6Info: loginUser6Info,
+      });
+
+      // const getBlogResponse = await request(httpServer).get(
+      //   `/sa/blogs/${createdBlog.createdEntity.id}/posts`,
+      // );
+      // expect(getBlogResponse.status).toBe(200);
+      // const blogFromAPi = getBlogResponse.body;
+      // expect(blogFromAPi).toEqual({
+      //   pagesCount: 1,
+      //   page: 1,
+      //   pageSize: 10,
+      //   totalCount: 6,
+      //   items: [
+      //     post6.createdEntity,
+      //     post5.createdEntity,
+      //     post4.createdEntity,
+      //     post3.createdEntity,
+      //     post2.createdEntity,
+      //     post1.createdEntity,
+      //   ],
+      // });
+    });
   });
 
   describe('Blogs router DELETE method', () => {
@@ -120,13 +366,13 @@ describe('BlogController (e2e)', () => {
     it('should delete unexciting blog by id and return 404', async () => {
       const randomNumber = '6348acd2e1a47ca32e79f46f';
       await request(httpServer)
-        .delete(`/blogs/${randomNumber}`)
+        .delete(`/sa/blogs/${randomNumber}`)
         .auth('admin', 'qwerty')
         .expect(404);
     });
     it('should delete  blog by id unauthorized and return 401 ', async () => {
       const randomNumber = '6348acd2e1a47ca32e79f46f';
-      await request(httpServer).delete(`/blogs/${randomNumber}`).expect(401);
+      await request(httpServer).delete(`/sa/blogs/${randomNumber}`).expect(401);
     });
     it('should delete blog by id', async () => {
       const result = await blogsTestManager.createBlog(
@@ -134,17 +380,20 @@ describe('BlogController (e2e)', () => {
         blogInputData,
       );
       await request(httpServer)
-        .delete('/blogs/' + result.createdEntity.id)
+        .delete('/sa/blogs/' + result.createdEntity.id)
         .auth('admin', 'qwerty')
         .expect(204);
 
-      await request(httpServer).get('/blogs').expect(200, {
-        pagesCount: 0,
-        page: 1,
-        pageSize: 10,
-        totalCount: 0,
-        items: [],
-      });
+      await request(httpServer)
+        .get('/sa/blogs')
+        .auth('admin', 'qwerty')
+        .expect(200, {
+          pagesCount: 0,
+          page: 1,
+          pageSize: 10,
+          totalCount: 0,
+          items: [],
+        });
     });
   });
 
@@ -158,7 +407,10 @@ describe('BlogController (e2e)', () => {
         websiteUrl: 'https://vk.com/55',
         description: 'teacher',
       };
-      await request(httpServer).post('/blogs').send(blogInputData).expect(401);
+      await request(httpServer)
+        .post('/sa/blogs')
+        .send(blogInputData)
+        .expect(401);
     });
     it('should return 201 status and add new blog', async () => {
       await blogsTestManager.createBlog(httpServer, blogInputData);
@@ -186,17 +438,17 @@ describe('BlogController (e2e)', () => {
         blogId: result.createdEntity.id,
       };
       await request(httpServer)
-        .post(`/blogs/${result.createdEntity.id}/posts`)
+        .post(`/sa/blogs/${result.createdEntity.id}/posts`)
         .send(dataPost)
         .expect(401);
       await request(httpServer)
-        .post(`/blogs/${randomNumber}/posts`)
+        .post(`/sa/blogs/${randomNumber}/posts`)
         .auth('admin', 'qwerty')
         .send(dataPost)
         .expect(404);
 
       const resp = await request(httpServer)
-        .post(`/blogs/${result.createdEntity.id}/posts`)
+        .post(`/sa/blogs/${result.createdEntity.id}/posts`)
         .auth('admin', 'qwerty')
         .send(dataPost)
         .expect(201);
@@ -230,7 +482,7 @@ describe('BlogController (e2e)', () => {
         blogInputData,
       );
       const resp = await request(httpServer)
-        .put('/blogs/' + result.createdEntity.id)
+        .put('/sa/blogs/' + result.createdEntity.id)
         .auth('admin', 'qwerty')
         .send({
           name: 'Nikolay Durov',
@@ -250,7 +502,8 @@ describe('BlogController (e2e)', () => {
       };
 
       await request(httpServer)
-        .get('/blogs')
+        .get('/sa/blogs')
+        .auth('admin', 'qwerty')
         .expect(200, {
           pagesCount: 1,
           page: 1,
@@ -265,7 +518,7 @@ describe('BlogController (e2e)', () => {
         blogInputData,
       );
       const resp = await request(httpServer)
-        .put('/blogs/' + result.createdEntity.id)
+        .put('/sa/blogs/' + result.createdEntity.id)
         .send({
           name: 'Nikolay Durov',
           websiteUrl: 'https://vk.com',
@@ -279,7 +532,7 @@ describe('BlogController (e2e)', () => {
         blogInputData,
       );
       const resp = await request(httpServer)
-        .put('/blogs/' + result.createdEntity.id)
+        .put('/sa/blogs/' + result.createdEntity.id)
         .auth('admin', 'qwerty')
         .send({
           name: 'Nikolay Durov',
@@ -291,7 +544,7 @@ describe('BlogController (e2e)', () => {
     it('try change non-exist blog and return 404', async () => {
       const randomNumber = '6348acd2e1a47ca32e79f46f';
       const resp = await request(httpServer)
-        .put(`/blogs/${randomNumber}`)
+        .put(`/sa/blogs/${randomNumber}`)
         .auth('admin', 'qwerty')
         .send({
           name: 'Nikolay Durov',

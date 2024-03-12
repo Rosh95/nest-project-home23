@@ -9,7 +9,7 @@ export const usersTestManager = {
     expectedStatusCode: ResultCode = ResultCode.Created,
   ) {
     const response = await request(server)
-      .post('/users')
+      .post('/sa/users')
       .auth('admin', 'qwerty')
       .send(data)
       .expect(expectedStatusCode);

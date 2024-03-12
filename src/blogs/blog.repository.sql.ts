@@ -28,39 +28,20 @@ export class BlogRepositorySql {
     const query = `
   INSERT INTO public."Blogs"(
    name, description, "websiteUrl", "isMembership")
-  VALUES ( $1, $2, $3, $4);
+  VALUES ( $1, $2, $3, $4)
+  RETURNING *
     `;
-    await this.dataSource.query(query, [
+    const createdBlog = await this.dataSource.query(query, [
       newBlog.name,
       newBlog.description,
       newBlog.websiteUrl,
       newBlog.isMembership,
     ]);
-
-    const queryDataForNewPostBlog = `
-    SELECT *   FROM public."Blogs" u 
-    WHERE name = $1 AND description = $2
-    `;
-    const blogData = await this.dataSource.query(queryDataForNewPostBlog, [
-      newBlog.name,
-      newBlog.description,
-    ]);
-    if (blogData[0]) {
-      return blogData[0].id;
+    console.log(createdBlog + 'createdBlog');
+    if (createdBlog[0].id) {
+      return createdBlog[0].id;
     }
     return null;
-
-    // const result: BlogDocument = await this.blogModel.create(newBlog);
-    //
-    // return result._id.toString();
-    // return {
-    //   id: result.id,
-    //   name: newBlog.name,
-    //   description: newBlog.description,
-    //   websiteUrl: newBlog.websiteUrl,
-    //   createdAt: newBlog.createdAt.toISOString(),
-    //   isMembership: newBlog.isMembership,
-    // };
   }
   async updateBlog(
     blogId: string,
@@ -81,17 +62,5 @@ export class BlogRepositorySql {
       ],
     );
     return updatedBlog[0] ? true : false;
-
-    // const result = await this.blogModel.updateOne(
-    //   { _id: new ObjectId(blogId) },
-    //   {
-    //     $set: {
-    //       name: blogUpdateData.name,
-    //       description: blogUpdateData.description,
-    //       websiteUrl: blogUpdateData.websiteUrl,
-    //     },
-    //   },
-    // );
-    // return result.matchedCount === 1;
   }
 }

@@ -37,7 +37,7 @@ export class BlogQueryRepositorySql {
     SELECT  id, name, description, "websiteUrl", "createdAt", "isMembership"
     FROM public."Blogs" u 
     WHERE name ILIKE $1 
-    ORDER BY "${sortBy}" ${sortDirection}
+    ORDER BY "${sortBy}"  ${sortDirection}
     LIMIT $2 OFFSET $3
     `;
     const blogData: BlogViewType[] = await this.dataSource.query(query, [

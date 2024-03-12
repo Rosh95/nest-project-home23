@@ -6,14 +6,13 @@ import { AppModule } from '../../app.module';
 import { CreateUserDto } from '../../users/user.types';
 import { AuthTestManager } from '../../auth/tests/auth.testManager.spec';
 import { ResultCode } from '../../helpers/heplersType';
-import { DbMongooseModule } from '../../modules/DbMongooseModule';
-import { DbMongooseTestingMemoryModule } from '../../modules/DbMongooseTestingMemoryModule';
 import { blogsTestManager } from '../../blogs/test/blog.testManager.spec';
 import { BlogInputModel } from '../../blogs/blogs.types';
 import { postsTestManager } from '../../posts/test/post.testManager.spec';
 import { v4 } from 'uuid';
 import { CommentTestManager } from './comments.testManager.spec';
 import { createVasyaDataForRegistAndLogin } from '../../../test/test.helper';
+import { LikeStatusOption } from '../comments.types';
 
 jest.setTimeout(930000);
 
@@ -24,10 +23,7 @@ describe('CommentsController (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    })
-      .overrideModule(DbMongooseModule)
-      .useModule(DbMongooseTestingMemoryModule)
-      .compile();
+    }).compile();
 
     app = moduleFixture.createNestApplication();
 
@@ -37,29 +33,42 @@ describe('CommentsController (e2e)', () => {
 
     httpServer = app.getHttpServer();
 
-    //  await request(httpServer).delete('/testing/all-data');
+    await request(httpServer).delete('/testing/all-data');
   });
 
   afterAll(async () => {
     await app.close();
   });
-  // beforeEach(async () => {
-  //   await request(httpServer).delete('/testing/all-data');
-  // });
+  beforeEach(async () => {
+    await request(httpServer).delete('/testing/all-data');
+  });
 
   describe('Comments router testing', () => {
-    // beforeEach(async () => {
-    //   await request(httpServer).delete('/testing/all-data');
-    // });
-
-    const createVasyaData = (number: number) => {
+    beforeEach(async () => {
+      await request(httpServer).delete('/testing/all-data');
+    });
+    const createPostInputData = (num: number) => {
+      return {
+        title: `Whiplash ${num}`,
+        shortDescription: `a feature screenplay synopsis by Damien Chazelle ${num}`,
+        content: `A promising young drummerho will stop at nothing to realize a student’s potential. ${num}`,
+      };
+    };
+    const createBlogInputData = (num: number) => {
+      return {
+        name: `Robert${num}`,
+        description: `One small section contains a short description of the blog ${num}.`,
+        websiteUrl: `https://vk${num}.com/`,
+      };
+    };
+    const createIvanData = (number: number) => {
       const registrationData: CreateUserDto = {
-        login: `Vasya${number}`,
-        email: `vasya${number}@gmail.ru`,
+        login: `Petya${number}`,
+        email: `Petya${number}@gmail.ru`,
         password: '123456',
       };
       const loginData = {
-        loginOrEmail: `Vasya${number}`,
+        loginOrEmail: `Petya${number}`,
         password: '123456',
       };
 
@@ -89,11 +98,11 @@ describe('CommentsController (e2e)', () => {
       );
       await AuthTestManager.registrationUser(
         httpServer,
-        createVasyaData(2).registrationData,
+        createIvanData(2).registrationData,
       );
       const loginUserInfo = await AuthTestManager.loginUser(
         httpServer,
-        createVasyaData(2).loginData,
+        createIvanData(2).loginData,
       );
 
       const commentText =
@@ -121,7 +130,7 @@ describe('CommentsController (e2e)', () => {
         content: commentText,
         commentatorInfo: {
           userId: expect.any(String),
-          userLogin: createVasyaData(2).registrationData.login,
+          userLogin: createIvanData(2).registrationData.login,
         },
         createdAt: expect.any(String),
         likesInfo: {
@@ -165,5 +174,117 @@ describe('CommentsController (e2e)', () => {
         },
       });
     });
+    it(
+      'PUT -> "/comments/:commentId/like-status": create comment then: ' +
+        'like the comment by user 1, user 2, user 3, user 4. ',
+      async () => {
+        const comment =
+          'Salam EveryOne. How Are you doing, man?? Let`s talk about football?';
+        const infoAboutNewComment =
+          await CommentTestManager.createCommentWithBlogAndPost(
+            httpServer,
+            createBlogInputData(14),
+            createPostInputData(14),
+            14,
+            comment,
+          );
+        await AuthTestManager.registrationUser(
+          httpServer,
+          createIvanData(1).registrationData,
+        );
+        const loginUser1Info = await AuthTestManager.loginUser(
+          httpServer,
+          createIvanData(1).loginData,
+        );
+        await AuthTestManager.registrationUser(
+          httpServer,
+          createIvanData(2).registrationData,
+        );
+        const loginUser2Info = await AuthTestManager.loginUser(
+          httpServer,
+          createIvanData(2).loginData,
+        );
+        await AuthTestManager.registrationUser(
+          httpServer,
+          createIvanData(3).registrationData,
+        );
+        const loginUser3Info = await AuthTestManager.loginUser(
+          httpServer,
+          createIvanData(3).loginData,
+        );
+        await AuthTestManager.registrationUser(
+          httpServer,
+          createIvanData(4).registrationData,
+        );
+        const loginUser4Info = await AuthTestManager.loginUser(
+          httpServer,
+          createIvanData(4).loginData,
+        );
+        await CommentTestManager.createLikeStatusForComment(
+          httpServer,
+          infoAboutNewComment.comment.id,
+          loginUser1Info.accessToken,
+          { likeStatus: LikeStatusOption.Like },
+        );
+
+        const getNewCommentAfterFirstLike = await request(httpServer)
+          .get(`/comments/${infoAboutNewComment.comment.id}`)
+          .set({
+            Authorization: `Bearer ${loginUser1Info.accessToken}`,
+          })
+          .expect(ResultCode.Success);
+        console.log(
+          'getNewCommentAfterFirstLike' + getNewCommentAfterFirstLike,
+        );
+
+        await CommentTestManager.createLikeStatusForComment(
+          httpServer,
+          infoAboutNewComment.comment.id,
+          loginUser2Info.accessToken,
+          { likeStatus: LikeStatusOption.Like },
+        );
+
+        const getNewCommentAfterSecondLike = await request(httpServer)
+          .get(`/comments/${infoAboutNewComment.comment.id}`)
+          .set({
+            Authorization: `Bearer ${loginUser1Info.accessToken}`,
+          })
+          .expect(ResultCode.Success);
+        console.log(
+          'getNewCommentAfterSecondLike' + getNewCommentAfterSecondLike,
+        );
+        await CommentTestManager.createLikeStatusForComment(
+          httpServer,
+          infoAboutNewComment.comment.id,
+          loginUser3Info.accessToken,
+          { likeStatus: LikeStatusOption.Like },
+        );
+        const getNewCommentAfterThirdLike = await request(httpServer)
+          .get(`/comments/${infoAboutNewComment.comment.id}`)
+          .set({
+            Authorization: `Bearer ${loginUser1Info.accessToken}`,
+          })
+          .expect(ResultCode.Success);
+        console.log(
+          'getNewCommentAfterThirdLike' + getNewCommentAfterThirdLike,
+        );
+
+        await CommentTestManager.createLikeStatusForComment(
+          httpServer,
+          infoAboutNewComment.comment.id,
+          loginUser4Info.accessToken,
+          { likeStatus: LikeStatusOption.Like },
+        );
+        const getNewCommentAfterFourthLike = await request(httpServer)
+          .get(`/comments/${infoAboutNewComment.comment.id}`)
+          .set({
+            Authorization: `Bearer ${loginUser1Info.accessToken}`,
+          })
+          .expect(ResultCode.Success);
+        console.log(
+          'getNewCommentAfterFourthLike' + getNewCommentAfterFourthLike,
+        );
+      },
+    );
   });
 });

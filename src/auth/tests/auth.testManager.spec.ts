@@ -1,6 +1,7 @@
 import { ResultCode } from '../../helpers/heplersType';
 import request from 'supertest';
 import { CreateUserDto } from '../../users/user.types';
+import { LikeStatusOptionVariable } from '../../comments/comments.types';
 
 export const AuthTestManager = {
   async registrationUser(
@@ -35,5 +36,20 @@ export const AuthTestManager = {
       accessToken: response.body.accessToken,
       refreshToken: refreshTokenCookie,
     };
+  },
+
+  async putLikeStatusForPost(
+    server: string,
+    postId: string,
+    likeStatus: LikeStatusOptionVariable,
+    accessToken: string,
+    expectedStatusCode: ResultCode = ResultCode.Success,
+  ) {
+    const response = await request(server)
+      .put(`/posts/${postId}/like-status`)
+      .set({ Authorization: `Bearer ${accessToken}` })
+      .send(likeStatus)
+      .expect(expectedStatusCode);
+    console.log(response.body);
   },
 };

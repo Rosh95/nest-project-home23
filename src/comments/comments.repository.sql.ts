@@ -123,7 +123,8 @@ export class CommentsRepositorySql {
     `,
       [commentId, userId],
     );
-    return !!foundLikeStatus;
+    console.log(foundLikeStatus[0]);
+    return !!foundLikeStatus[0];
   }
   async createLikeStatusForComment(
     commentId: string,

@@ -6,6 +6,7 @@ import request from 'supertest';
 import { blogsTestManager } from '../../blogs/test/blog.testManager.spec';
 import { postsTestManager } from './post.testManager.spec';
 import { BlogInputModel } from '../../blogs/blogs.types';
+import { CreateUserDto } from '../../users/user.types';
 
 const blogInputData: BlogInputModel = {
   name: 'Kamil',
@@ -19,6 +20,20 @@ const postsInputData = {
   shortDescription: 'a feature screenplay synopsis by Damien Chazelle',
   content:
     'A promising young drummer enrolls at a cut-throat music conservatory where his dreams of greatness are mentored by an instructor who will stop at nothing to realize a student’s potential.',
+};
+
+const createVasyaData = (number: number) => {
+  const registrationData: CreateUserDto = {
+    login: `Vasya${number}`,
+    email: `vasya${number}@gmail.ru`,
+    password: '123456',
+  };
+  const loginData = {
+    loginOrEmail: `Vasya${number}`,
+    password: '123456',
+  };
+
+  return { registrationData, loginData };
 };
 
 describe('PostController (e2e)', () => {
@@ -89,6 +104,18 @@ describe('PostController (e2e)', () => {
         `/posts/${randomNumber}`,
       );
       expect(getPostResponse.status).toBe(404);
+    });
+    it('should return 201 status and add new post', async () => {
+      const { createdEntity } = await blogsTestManager.createBlog(
+        httpServer,
+        blogInputData,
+      );
+      await postsTestManager.createBlogAndPostForHim(
+        httpServer,
+        postsInputData,
+        createdEntity.id,
+        201,
+      );
     });
   });
   describe('Posts router DELETE method', () => {
