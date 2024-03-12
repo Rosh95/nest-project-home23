@@ -152,7 +152,7 @@ export class CommentsQueryRepositorySql {
       [commentId, userId],
     );
     let currentStatus;
-    if (currentUserId[0].id) {
+    if (currentUserId[0]) {
       const result = await this.dataSource.query(
         `
         SELECT id, "commentId", "userId", "likeStatus", "createdAt"
